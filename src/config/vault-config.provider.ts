@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { deepMerge, ConfigRecord } from './deep-merge';
+import { deepMerge, isPlainObject, ConfigRecord } from './deep-merge';
 import { AppEnv } from './env.validation';
 
 export class VaultUnavailableError extends Error {
@@ -44,11 +44,22 @@ export class VaultConfigProvider {
       throw new VaultUnavailableError(`Vault responded with status ${response.status}`);
     }
 
+    let body: unknown;
     try {
-      const body = (await response.json()) as { data?: { data?: ConfigRecord } };
-      return body.data?.data ?? {};
-    } catch (error) {
-      throw new VaultUnavailableError(`Vault returned a malformed response: ${(error as Error).message}`);
+      body = await response.json();
+    } catch {
+      throw new VaultUnavailableError('Vault returned a response that could not be parsed as JSON');
     }
+
+    const data = isPlainObject(body) ? body.data : undefined;
+    const secretData = isPlainObject(data) ? data.data : undefined;
+
+    if (secretData === undefined) {
+      return {};
+    }
+    if (!isPlainObject(secretData)) {
+      throw new VaultUnavailableError('Vault returned a secret payload that was not a JSON object');
+    }
+    return secretData;
   }
 }

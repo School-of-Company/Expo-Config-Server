@@ -58,4 +58,14 @@ describe('NativeConfigProvider', () => {
       ProfileNotFoundError,
     );
   });
+
+  it('throws when application-{profile}.yml does not parse to an object', async () => {
+    await writeFile(join(configDir, 'application-local.yml'), '- a\n- b\n');
+
+    const provider = providerWithConfigDir(configDir);
+
+    await expect(provider.load('auth', 'local')).rejects.toThrow(
+      /must parse to a YAML mapping/,
+    );
+  });
 });

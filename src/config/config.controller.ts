@@ -1,4 +1,4 @@
-import { Controller, Get, HttpException, HttpStatus, Param } from '@nestjs/common';
+import { Controller, Get, HttpException, HttpStatus, Logger, Param } from '@nestjs/common';
 import { ConfigMergeService } from './config-merge.service';
 import { ProfileNotFoundError } from './native-config.provider';
 import { VaultUnavailableError } from './vault-config.provider';
@@ -7,6 +7,8 @@ const SAFE_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
 @Controller('configs')
 export class ConfigController {
+  private readonly logger = new Logger(ConfigController.name);
+
   constructor(private readonly configMergeService: ConfigMergeService) {}
 
   @Get(':service/:profile')
@@ -21,7 +23,8 @@ export class ConfigController {
         throw new HttpException(error.message, HttpStatus.NOT_FOUND);
       }
       if (error instanceof VaultUnavailableError) {
-        throw new HttpException(error.message, HttpStatus.SERVICE_UNAVAILABLE);
+        this.logger.error(`Vault unavailable for ${service}/${profile}: ${error.message}`);
+        throw new HttpException('Vault is currently unavailable', HttpStatus.SERVICE_UNAVAILABLE);
       }
       throw error;
     }

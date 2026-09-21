@@ -11,8 +11,10 @@ export class ConfigMergeService {
   ) {}
 
   async getMergedConfig(service: string, profile: string): Promise<ConfigRecord> {
-    const native = await this.nativeConfigProvider.load(service, profile);
-    const vault = await this.vaultConfigProvider.load(service);
+    const [native, vault] = await Promise.all([
+      this.nativeConfigProvider.load(service, profile),
+      this.vaultConfigProvider.load(service),
+    ]);
     return deepMerge(native, vault);
   }
 }

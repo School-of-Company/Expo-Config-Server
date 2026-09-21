@@ -17,6 +17,6 @@ export function deepMerge(base: ConfigRecord, override: ConfigRecord): ConfigRec
   return result;
 }
 
-function isPlainObject(value: unknown): value is ConfigRecord {
+export function isPlainObject(value: unknown): value is ConfigRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

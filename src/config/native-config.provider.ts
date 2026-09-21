@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as yaml from 'js-yaml';
-import { deepMerge, ConfigRecord } from './deep-merge';
+import { deepMerge, isPlainObject, ConfigRecord } from './deep-merge';
 import { AppEnv } from './env.validation';
 
 export class ProfileNotFoundError extends Error {
@@ -32,9 +32,9 @@ export class NativeConfigProvider {
     required: boolean,
     profile: string,
   ): Promise<ConfigRecord> {
+    let raw: string;
     try {
-      const raw = await readFile(join(this.getConfigDir(), fileName), 'utf-8');
-      return (yaml.load(raw) as ConfigRecord) ?? {};
+      raw = await readFile(join(this.getConfigDir(), fileName), 'utf-8');
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         if (required) {
@@ -44,5 +44,14 @@ export class NativeConfigProvider {
       }
       throw error;
     }
+
+    const parsed: unknown = yaml.load(raw);
+    if (parsed === undefined || parsed === null) {
+      return {};
+    }
+    if (!isPlainObject(parsed)) {
+      throw new Error(`${fileName} must parse to a YAML mapping (object), got ${typeof parsed}`);
+    }
+    return parsed;
   }
 }

@@ -46,6 +46,23 @@ describe('ConfigController', () => {
     }
   });
 
+  it('does not leak the internal VaultUnavailableError message to the client', async () => {
+    expect.assertions(2);
+    const configMergeService = {
+      getMergedConfig: jest
+        .fn()
+        .mockRejectedValue(new VaultUnavailableError('Failed to reach Vault: connect ECONNREFUSED 10.0.5.12:8200')),
+    } as unknown as ConfigMergeService;
+    const controller = new ConfigController(configMergeService);
+
+    try {
+      await controller.getConfig('auth', 'local');
+    } catch (error) {
+      expect((error as HttpException).message).not.toMatch(/10\.0\.5\.12/);
+      expect((error as HttpException).message).not.toMatch(/ECONNREFUSED/);
+    }
+  });
+
   it('rejects a path-traversal-shaped service or profile with 400 without calling the merge service', async () => {
     expect.assertions(5);
     const configMergeService = {

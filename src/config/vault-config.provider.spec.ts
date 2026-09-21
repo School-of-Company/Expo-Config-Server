@@ -70,4 +70,25 @@ describe('VaultConfigProvider', () => {
 
     await expect(provider.load('auth')).rejects.toThrow(VaultUnavailableError);
   });
+
+  it('does not leak the raw parse error text into the thrown message', async () => {
+    jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(async () => new Response('<html>gateway error</html>', { status: 200 }));
+
+    const provider = providerWithVaultConfig();
+
+    await expect(provider.load('auth')).rejects.toThrow(VaultUnavailableError);
+    await expect(provider.load('auth')).rejects.not.toThrow(/gateway error/);
+  });
+
+  it('throws VaultUnavailableError when Vault secret data is not an object', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ data: { data: 'not-an-object' } }), { status: 200 }),
+    );
+
+    const provider = providerWithVaultConfig();
+
+    await expect(provider.load('auth')).rejects.toThrow(VaultUnavailableError);
+  });
 });
