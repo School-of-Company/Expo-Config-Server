@@ -6,6 +6,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AppModule } from '../src/app.module';
 
+function restoreEnv(key: string, previousValue: string | undefined) {
+  if (previousValue === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = previousValue;
+  }
+}
+
 describe('Config API (e2e)', () => {
   let app: INestApplication;
   let configDir: string;
@@ -50,9 +58,9 @@ describe('Config API (e2e)', () => {
   afterAll(async () => {
     await app.close();
     fetchSpy.mockRestore();
-    process.env.CONFIG_DIR = previousConfigDir;
-    process.env.VAULT_ADDR = previousVaultAddr;
-    process.env.VAULT_TOKEN = previousVaultToken;
+    restoreEnv('CONFIG_DIR', previousConfigDir);
+    restoreEnv('VAULT_ADDR', previousVaultAddr);
+    restoreEnv('VAULT_TOKEN', previousVaultToken);
     await rm(configDir, { recursive: true, force: true });
   });
 
