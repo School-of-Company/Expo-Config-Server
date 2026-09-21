@@ -18,18 +18,15 @@ describe('Config API (e2e)', () => {
   let app: INestApplication | undefined;
   let configDir: string;
   let previousConfigDir: string | undefined;
-  let previousVaultAddr: string | undefined;
-  let previousVaultToken: string | undefined;
   let fetchSpy: jest.SpyInstance;
 
   beforeAll(async () => {
     configDir = await mkdtemp(join(tmpdir(), 'config-e2e-'));
     previousConfigDir = process.env.CONFIG_DIR;
-    previousVaultAddr = process.env.VAULT_ADDR;
-    previousVaultToken = process.env.VAULT_TOKEN;
     process.env.CONFIG_DIR = configDir;
-    process.env.VAULT_ADDR = 'http://vault.local';
-    process.env.VAULT_TOKEN = 'test-token';
+    // VAULT_ADDR/VAULT_TOKEN are set in test/jest-e2e.setup.ts, before AppModule
+    // (and therefore NestConfigModule.forRoot's validation) is ever imported.
+    // Setting them here would be too late to affect the frozen validated snapshot.
 
     await writeFile(join(configDir, 'application-local.yml'), 'port: 3000\n');
     await writeFile(join(configDir, 'auth-local.yml'), 'serviceName: auth\n');
@@ -59,8 +56,6 @@ describe('Config API (e2e)', () => {
     await app?.close();
     fetchSpy.mockRestore();
     restoreEnv('CONFIG_DIR', previousConfigDir);
-    restoreEnv('VAULT_ADDR', previousVaultAddr);
-    restoreEnv('VAULT_TOKEN', previousVaultToken);
     await rm(configDir, { recursive: true, force: true });
   });
 

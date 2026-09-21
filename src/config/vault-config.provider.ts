@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { deepMerge, ConfigRecord } from './deep-merge';
+import { AppEnv } from './env.validation';
 
 export class VaultUnavailableError extends Error {
   constructor(message: string) {
@@ -10,6 +12,8 @@ export class VaultUnavailableError extends Error {
 
 @Injectable()
 export class VaultConfigProvider {
+  constructor(private readonly configService: ConfigService<AppEnv, true>) {}
+
   async load(service: string): Promise<ConfigRecord> {
     const applicationSecrets = await this.readSecret('application');
     const serviceSecrets = await this.readSecret(service);
@@ -17,8 +21,8 @@ export class VaultConfigProvider {
   }
 
   private async readSecret(path: string): Promise<ConfigRecord> {
-    const vaultAddr = process.env.VAULT_ADDR;
-    const vaultToken = process.env.VAULT_TOKEN;
+    const vaultAddr = this.configService.get('VAULT_ADDR', { infer: true });
+    const vaultToken = this.configService.get('VAULT_TOKEN', { infer: true });
 
     if (!vaultAddr || !vaultToken) {
       throw new VaultUnavailableError('VAULT_ADDR or VAULT_TOKEN is not configured');

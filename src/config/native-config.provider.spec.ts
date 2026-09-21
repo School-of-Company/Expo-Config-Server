@@ -1,20 +1,28 @@
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { ConfigService } from '@nestjs/config';
 import { NativeConfigProvider, ProfileNotFoundError } from './native-config.provider';
+import { AppEnv } from './env.validation';
+
+function providerWithConfigDir(configDir: string): NativeConfigProvider {
+  return new NativeConfigProvider(
+    new ConfigService<AppEnv, true>({
+      CONFIG_DIR: configDir,
+      VAULT_ADDR: 'http://vault.local',
+      VAULT_TOKEN: 'test-token',
+    }),
+  );
+}
 
 describe('NativeConfigProvider', () => {
   let configDir: string;
-  let previousConfigDir: string | undefined;
 
   beforeEach(async () => {
     configDir = await mkdtemp(join(tmpdir(), 'native-config-test-'));
-    previousConfigDir = process.env.CONFIG_DIR;
-    process.env.CONFIG_DIR = configDir;
   });
 
   afterEach(async () => {
-    process.env.CONFIG_DIR = previousConfigDir;
     await rm(configDir, { recursive: true, force: true });
   });
 
@@ -25,7 +33,7 @@ describe('NativeConfigProvider', () => {
     );
     await writeFile(join(configDir, 'auth-local.yml'), 'db:\n  password: devpass\n');
 
-    const provider = new NativeConfigProvider();
+    const provider = providerWithConfigDir(configDir);
     const result = await provider.load('auth', 'local');
 
     expect(result).toEqual({
@@ -37,14 +45,14 @@ describe('NativeConfigProvider', () => {
   it('returns application-only config when the service file does not exist', async () => {
     await writeFile(join(configDir, 'application-local.yml'), 'port: 3000\n');
 
-    const provider = new NativeConfigProvider();
+    const provider = providerWithConfigDir(configDir);
     const result = await provider.load('unknown-service', 'local');
 
     expect(result).toEqual({ port: 3000 });
   });
 
   it('throws ProfileNotFoundError when application-{profile}.yml is missing', async () => {
-    const provider = new NativeConfigProvider();
+    const provider = providerWithConfigDir(configDir);
 
     await expect(provider.load('auth', 'missing-profile')).rejects.toThrow(
       ProfileNotFoundError,

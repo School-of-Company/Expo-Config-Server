@@ -53,3 +53,20 @@ Reverse dependencies are forbidden (e.g., a provider knowing about a service, or
 
 - All I/O is `async`/`await`. Use async/await consistently instead of promise chaining.
 - External calls (Vault) use Node 26's global `fetch`. Do not add a separate HTTP client library.
+
+## Environment Validation (`@nestjs/config`)
+
+- `AppModule` calls `NestConfigModule.forRoot({ isGlobal: true, validate: validateEnv })`
+  (`src/config/env.validation.ts`) so the app fails to boot if `VAULT_ADDR`/`VAULT_TOKEN` are
+  missing, instead of failing lazily on the first request.
+- Use `@nestjs/config@4.x`, not the latest `12.x` — the current `12.x` line ships as pure ESM
+  (`"type": "module"`, no CJS build) and breaks ts-jest/CommonJS. `4.x` is the last CJS release
+  and its peer range (`@nestjs/common ^10 || ^11`) matches this project's Nest 11.
+- **Gotcha:** once a required key (`VAULT_ADDR`, `VAULT_TOKEN`) passes `validate()`, `ConfigService`
+  freezes it into an internal "validated env" snapshot taken at `AppModule` import time — later
+  `process.env` mutations (e.g. in a test's `beforeAll`) do **not** change what `ConfigService.get()`
+  returns for that key afterward. `CONFIG_DIR` is unaffected because it's optional: when absent from
+  the validated snapshot, `.get()` falls through to a live `process.env` read. In e2e tests, set
+  `VAULT_ADDR`/`VAULT_TOKEN` in `test/jest-e2e.setup.ts` (via Jest's `setupFiles`, which runs before
+  any spec file's imports) — not in a spec file's `beforeAll`, which runs after `AppModule` is
+  already imported and validated.

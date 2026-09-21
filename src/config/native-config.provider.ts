@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as yaml from 'js-yaml';
 import { deepMerge, ConfigRecord } from './deep-merge';
+import { AppEnv } from './env.validation';
 
 export class ProfileNotFoundError extends Error {
   constructor(profile: string) {
@@ -13,6 +15,8 @@ export class ProfileNotFoundError extends Error {
 
 @Injectable()
 export class NativeConfigProvider {
+  constructor(private readonly configService: ConfigService<AppEnv, true>) {}
+
   async load(service: string, profile: string): Promise<ConfigRecord> {
     const applicationConfig = await this.readYaml(`application-${profile}.yml`, true, profile);
     const serviceConfig = await this.readYaml(`${service}-${profile}.yml`, false, profile);
@@ -20,7 +24,7 @@ export class NativeConfigProvider {
   }
 
   private getConfigDir(): string {
-    return process.env.CONFIG_DIR ?? join(process.cwd(), 'configs');
+    return this.configService.get('CONFIG_DIR', { infer: true }) ?? join(process.cwd(), 'configs');
   }
 
   private async readYaml(
