@@ -2,7 +2,7 @@
 
 ## When to Commit
 
-Only when the user explicitly requests it: "커밋해줘", "commit 해줘", "commit this", etc.
+Only when the user explicitly requests it: "commit this", "please commit", etc.
 Do not auto-commit after completing work.
 
 ## Pre-Commit Checks
@@ -31,24 +31,24 @@ Leave unrelated files unstaged. Notify the user if any are skipped.
 ## Message Format
 
 ```
-type :: 한국어 설명
+type: description
 ```
 
 - type: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`
-- Korean description only
+- Present-tense, concise description
 - No trailing period
 - Under 70 characters total
 
 Examples:
-- `feat :: service/profile 파라미터 검증 추가`
-- `fix :: Vault 응답 파싱 실패 시 503으로 매핑`
-- `test :: config-merge 우선순위 콜리전 키 테스트 추가`
+- `feat: validate service/profile route params`
+- `fix: map malformed Vault response to 503`
+- `test: add colliding-key test for config merge priority`
 
 ## Commit Execution
 
 ```bash
 git commit -m "$(cat <<'EOF'
-type :: 한국어 설명
+type: description
 EOF
 )"
 ```

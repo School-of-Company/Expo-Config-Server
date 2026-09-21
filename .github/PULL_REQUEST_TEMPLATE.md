@@ -1,27 +1,28 @@
-## 💡 배경 및 개요
+## 💡 Background & Overview
 
-> PR을 하게 된 문제상황, 배경 및 개요에 대해서 작성해주세요!
+> Describe the problem, context, and overview that led to this PR.
 
-Resolves: #{이슈번호}
+Resolves: #{issue-number}
 
-## 📃 작업내용
+## 📃 What Was Done
 
-> PR에서 한 작업을 작성해주세요!
+> Describe the work done in this PR.
 
-## 🙋‍♂️ 리뷰노트
+## 🙋‍♂️ Review Notes
 
-> 구현 시에 고민이었던 점들 혹은 특정 부분에 대한 의도가 있었다면 PR 리뷰의 이해를 돕기 위해 서술해주세요!
+> If there were things you were unsure about during implementation, or intent behind a specific
+> part of the code, describe them here to help reviewers understand.
 >
-> 또한 리뷰어에게 특정 부분에 대한 집중 혹은 코멘트 혹은 질문을 요청하는 경우에 작성하면 좋아요!
+> Also use this section to ask reviewers to focus on, comment on, or question specific parts.
 
-## ✅ PR 체크리스트
+## ✅ PR Checklist
 
-> 템플릿 체크리스트 말고도 추가적으로 필요한 체크리스트는 추가해주세요!
+> Add any additional checklist items beyond the template's, as needed.
 
-- [ ] 이 작업으로 인해 변경이 필요한 문서가 변경되었나요? (e.g. `configs/`, `.env`, `README`)
-- [ ] 이 작업을 하고나서 공유해야할 팀원들에게 공유되었나요? (e.g. `"config 서버 엔드포인트 추가됐어요"`, `"환경값 추가되었어요"`)
-- [ ] 작업한 코드가 정상적으로 동작하나요? (`npm test`, `npm run test:e2e`)
-- [ ] Merge 대상 브랜치가 올바른가요?
-- [ ] PR과 관련 없는 작업이 있지는 않나요?
+- [ ] Were any docs that need to change due to this work updated (e.g. `configs/`, `.env`, README)?
+- [ ] Has anything that needs to be shared with teammates after this work been shared? (e.g. "the config server endpoint was added", "a new env value was added")
+- [ ] Does the code you wrote actually work? (`npm test`, `npm run test:e2e`)
+- [ ] Is the target merge branch correct?
+- [ ] Does this PR contain anything unrelated to its stated purpose?
 
-## 🎸 기타
+## 🎸 Other

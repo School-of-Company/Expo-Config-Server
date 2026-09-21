@@ -53,7 +53,7 @@ Do not use this skill for local self-review before creating a PR (use `review-lo
 7. Commit and push — this is part of the skill, not a separate step:
    ```bash
    git add <changed files>
-   git commit -m "fix :: PR 리뷰 반영 - <요약>"
+   git commit -m "fix: address PR review feedback - <summary>"
    git push origin <branch-name>
    ```
 
@@ -65,10 +65,10 @@ Do not use this skill for local self-review before creating a PR (use `review-lo
    REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
    ```
 
-   - **Applied**: `[${HASH}](https://github.com/${REPO}/commit/${FULL})에서 반영했습니다.`
-   - **Already Resolved**: `현재 코드에 이미 반영되어 있습니다. (<evidence>)`
-   - **Explained**: `의도한 구현입니다. <reason>`
-   - **Declined / Out of Scope**: `<reason> 이유로 반영하지 않겠습니다.`
+   - **Applied**: `Addressed in [${HASH}](https://github.com/${REPO}/commit/${FULL}).`
+   - **Already Resolved**: `Already handled in the current code. (<evidence>)`
+   - **Explained**: `This is intentional. <reason>`
+   - **Declined / Out of Scope**: `Not applying this because <reason>.`
 
    Post each reply:
    ```bash

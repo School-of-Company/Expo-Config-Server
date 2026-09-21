@@ -11,32 +11,34 @@
 
 ## Environment Variable Management
 
-Config server 자신의 부트스트랩 값(`CONFIG_DIR`, `VAULT_ADDR`, `VAULT_TOKEN`)은 각 provider
-내부에서만 `process.env`로 읽는다. 컨트롤러나 서비스 레이어에서 직접 `process.env`를 읽지 않는다.
+The config server's own bootstrap values (`CONFIG_DIR`, `VAULT_ADDR`, `VAULT_TOKEN`) are read from
+`process.env` only inside their respective provider. The controller and service layers never read
+`process.env` directly.
 
 ```ts
-// vault-config.provider.ts 안에서만
+// only inside vault-config.provider.ts
 const vaultAddr = process.env.VAULT_ADDR;
 const vaultToken = process.env.VAULT_TOKEN;
 ```
 
 ## Route Parameter Injection
 
-- `service`/`profile` 파라미터는 검증 없이 파일 경로나 Vault API 경로에 들어가면 안 된다
-  (`.claude/rules/architecture.md`의 Route Parameter Safety 참고).
-- 화이트리스트 정규식 검증을 통과하지 못하면 400을 반환하고, 그 값이 provider까지 전달되지
-  않도록 컨트롤러 레벨에서 막는다.
+- `service`/`profile` params must never reach a file path or a Vault API path without validation
+  (see the Route Parameter Safety section in `.claude/rules/architecture.md`).
+- A value that fails the whitelist regex returns 400 and is blocked at the controller level before
+  it ever reaches a provider.
 
 ## Vault Response Handling
 
-- Vault가 200과 함께 비정상적인(malformed) 본문을 반환해도 그대로 클라이언트에 흘리지 않는다 —
-  파싱 실패는 `VaultUnavailableError`로 매핑해서 503으로 응답한다.
-- Vault 개별 경로가 404인 것은 "그 경로에 시크릿 없음"이며 에러가 아니다. 빈 객체로 처리한다.
+- Never forward a malformed Vault 200 response body to the client as-is — a parse failure maps to
+  `VaultUnavailableError` and responds 503.
+- A 404 from a specific Vault path means "no secret at that path" and is not an error — treat it as
+  an empty object.
 
 ## Error Messages to Clients
 
-- `HttpException`에 담기는 메시지에 Vault 주소, 네트워크 에러의 원본 문자열 등 내부 정보를
-  그대로 노출하지 않는다. 상세는 서버 로그로, 클라이언트에는 일반화된 메시지로 응답한다.
+- Do not expose internal details (Vault address, raw network error strings) in the message carried
+  by an `HttpException`. Send detail to server logs; respond to clients with a generalized message.
 
 ## Logging
 

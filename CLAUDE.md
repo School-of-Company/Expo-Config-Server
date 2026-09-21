@@ -2,17 +2,17 @@
 
 ## Project Overview
 
-`expo-config-server`는 Expo(스타트업 박람회 프로젝트) MSA의 config server다.
-비민감 공통/서비스별 설정은 이 리포의 `configs/` 아래 yml로 관리하고, 시크릿은 Vault에서 조회해
-병합한 뒤 `GET /configs/:service/:profile`로 서빙한다. 각 서비스는 부팅 시 이 엔드포인트 하나만
-호출해서 필요한 설정을 전부 받는다.
+`expo-config-server` is the config server for the Expo (startup expo project) MSA.
+Non-sensitive shared/service-specific settings live as yml under this repo's `configs/`;
+secrets are looked up from Vault and merged in, then served via `GET /configs/:service/:profile`.
+Each service calls this single endpoint on boot to receive everything it needs.
 
 **Framework:** NestJS 11
 **Language:** TypeScript
 **Package manager:** npm
-**Status:** 초기 구현 완료 (native + Vault 병합 서빙), 16개 클라이언트 서비스 부트스트랩 통합은 후속
+**Status:** Initial implementation complete (native + Vault merge serving); bootstrap integration for the 16 client services is a follow-up
 
-> **응답 언어:** 항상 한국어로 응답한다.
+> **Response language:** Always respond in English.
 
 ---
 
@@ -20,11 +20,11 @@
 
 ```bash
 # Required
-npm test                # 유닛 테스트 (jest)
-npm run test:e2e        # e2e 테스트 (실제 HTTP 스택)
+npm test                # Unit tests (jest)
+npm run test:e2e        # e2e tests (real HTTP stack)
 
 # Recommended
-npx tsc -p tsconfig.build.json --noEmit   # 타입 체크
+npx tsc -p tsconfig.build.json --noEmit   # Type check
 npm run lint             # eslint
 
 # Run
@@ -37,20 +37,20 @@ npm run start:dev
 
 ```
 expo-config-server/
-├── configs/                        # native 설정 원본 (git, 이 리포 안)
-│   ├── application-local.yml       # 전체 공통 (profile별)
+├── configs/                        # Native config source (git, inside this repo)
+│   ├── application-local.yml       # Shared across all services (per profile)
 │   ├── application-dev.yml
 │   ├── application-prod.yml
-│   └── auth-local.yml              # 서비스별 override (선택)
+│   └── auth-local.yml              # Service-specific override (optional)
 ├── src/
 │   ├── main.ts
-│   ├── app.module.ts               # ConfigModule import
+│   ├── app.module.ts               # Imports ConfigModule
 │   └── config/
-│       ├── deep-merge.ts           # 순수 함수, 병합 로직 (I/O 없음)
-│       ├── native-config.provider.ts   # configs/*.yml 읽기 (I/O)
-│       ├── vault-config.provider.ts    # Vault KV v2 조회 (I/O)
-│       ├── config-merge.service.ts     # 두 provider 조합, 병합 우선순위
-│       ├── config.controller.ts        # GET /configs/:service/:profile, 에러→HTTP 매핑
+│       ├── deep-merge.ts           # Pure function, merge logic (no I/O)
+│       ├── native-config.provider.ts   # Reads configs/*.yml (I/O)
+│       ├── vault-config.provider.ts    # Queries Vault KV v2 (I/O)
+│       ├── config-merge.service.ts     # Combines both providers, merge priority
+│       ├── config.controller.ts        # GET /configs/:service/:profile, error→HTTP mapping
 │       └── config.module.ts
 └── test/
     └── config.e2e-spec.ts
@@ -62,14 +62,14 @@ expo-config-server/
 
 ```
 Client Service → GET /configs/:service/:profile
-  → ConfigController: service/profile 형식 검증 (400)
+  → ConfigController: validates service/profile shape (400)
   → ConfigMergeService
-      → NativeConfigProvider: configs/application-{profile}.yml (필수, 없으면 404)
-                             + configs/{service}-{profile}.yml (선택)
-      → VaultConfigProvider: secret/application (공통) + secret/{service} (서비스별)
+      → NativeConfigProvider: configs/application-{profile}.yml (required, 404 if missing)
+                             + configs/{service}-{profile}.yml (optional)
+      → VaultConfigProvider: secret/application (common) + secret/{service} (per-service)
       → deep merge: Vault {service} > Vault application > native {service} > native application
-  → 200 병합된 JSON, 또는 404(미정의 profile)/503(Vault 불통)
-Client는 부팅 시 이 응답을 받아 반영, 실패 시 재시도 없이 기동 실패(fail-fast)
+  → 200 with the merged JSON, or 404 (undefined profile) / 503 (Vault unreachable)
+Client applies the response on boot; on failure it fails fast without retrying.
 ```
 
 ---
@@ -123,12 +123,12 @@ Client는 부팅 시 이 응답을 받아 반영, 실패 시 재시도 없이 �
 
 ## Coding Standards
 
-- 병합 로직처럼 I/O 없는 로직은 순수 함수로 분리한다 (`deep-merge.ts`가 기준)
-- 외부 I/O(파일 읽기, HTTP 호출)는 provider 클래스에만 두고, 서비스/컨트롤러에 직접 넣지 않는다
-- Vault/CONFIG_DIR 같은 환경변수는 provider 내부에서만 읽는다 — 컨트롤러나 서비스에서 `process.env`를 직접 읽지 않는다
-- 라우트 파라미터로 파일 경로나 외부 API 경로를 구성할 때는 항상 화이트리스트 정규식으로 검증한다 (path traversal 방지)
-- TypeScript 엄격 타이핑 — `any` 금지, 파싱 결과는 명시적으로 타입 좁히기
-- 주석은 WHY가 비자명할 때만 (예: 왜 shallow merge가 아니라 deep merge인지)
+- Keep I/O-free logic (like the merge algorithm) as pure functions — `deep-merge.ts` is the reference
+- External I/O (file reads, HTTP calls) belongs only in provider classes, never directly in a service or controller
+- Read Vault/CONFIG_DIR-style env vars only inside their provider — never `process.env` directly in a controller or service
+- Whenever a route parameter is used to build a file path or an external API path, validate it against a whitelist regex first (path traversal prevention)
+- Strict TypeScript typing — no `any`; narrow parsed results explicitly
+- Comments only when the WHY is non-obvious (e.g., why deep merge instead of shallow merge)
 
 ## Security Rules Summary
 

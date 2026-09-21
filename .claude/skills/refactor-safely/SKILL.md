@@ -40,7 +40,7 @@ Tests are the evidence of behavior preservation. One change at a time.
 
 ```bash
 git commit -m "$(cat <<'EOF'
-refactor :: 한국어 설명
+refactor: description
 EOF
 )"
 ```
