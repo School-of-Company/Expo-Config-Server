@@ -45,4 +45,28 @@ describe('ConfigController', () => {
       expect((error as HttpException).getStatus()).toBe(HttpStatus.SERVICE_UNAVAILABLE);
     }
   });
+
+  it('rejects a path-traversal-shaped service or profile with 400 without calling the merge service', async () => {
+    expect.assertions(5);
+    const configMergeService = {
+      getMergedConfig: jest.fn(),
+    } as unknown as ConfigMergeService;
+    const controller = new ConfigController(configMergeService);
+
+    try {
+      await controller.getConfig('../etc', 'local');
+    } catch (error) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(HttpStatus.BAD_REQUEST);
+    }
+
+    try {
+      await controller.getConfig('auth', '..%2F..%2Fdocker');
+    } catch (error) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(HttpStatus.BAD_REQUEST);
+    }
+
+    expect(configMergeService.getMergedConfig).not.toHaveBeenCalled();
+  });
 });

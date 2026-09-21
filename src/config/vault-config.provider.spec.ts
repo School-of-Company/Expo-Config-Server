@@ -60,4 +60,12 @@ describe('VaultConfigProvider', () => {
 
     await expect(provider.load('auth')).rejects.toThrow(VaultUnavailableError);
   });
+
+  it('throws VaultUnavailableError when Vault returns a malformed (non-JSON) body', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue(new Response('not json', { status: 200 }));
+
+    const provider = new VaultConfigProvider();
+
+    await expect(provider.load('auth')).rejects.toThrow(VaultUnavailableError);
+  });
 });

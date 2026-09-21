@@ -15,7 +15,7 @@ function restoreEnv(key: string, previousValue: string | undefined) {
 }
 
 describe('Config API (e2e)', () => {
-  let app: INestApplication;
+  let app: INestApplication | undefined;
   let configDir: string;
   let previousConfigDir: string | undefined;
   let previousVaultAddr: string | undefined;
@@ -56,7 +56,7 @@ describe('Config API (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
     fetchSpy.mockRestore();
     restoreEnv('CONFIG_DIR', previousConfigDir);
     restoreEnv('VAULT_ADDR', previousVaultAddr);
@@ -65,7 +65,7 @@ describe('Config API (e2e)', () => {
   });
 
   it('GET /configs/auth/local merges native and vault config', async () => {
-    const response = await request(app.getHttpServer()).get('/configs/auth/local');
+    const response = await request(app!.getHttpServer()).get('/configs/auth/local');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
@@ -76,7 +76,7 @@ describe('Config API (e2e)', () => {
   });
 
   it('GET /configs/auth/missing-profile returns 404', async () => {
-    const response = await request(app.getHttpServer()).get('/configs/auth/missing-profile');
+    const response = await request(app!.getHttpServer()).get('/configs/auth/missing-profile');
 
     expect(response.status).toBe(404);
   });

@@ -5,16 +5,16 @@ import { VaultConfigProvider, VaultUnavailableError } from './vault-config.provi
 describe('ConfigMergeService', () => {
   it('merges native and vault config with vault winning on conflicts', async () => {
     const nativeConfigProvider = {
-      load: jest.fn().mockResolvedValue({ port: 3000, db: { host: 'localhost' } }),
+      load: jest.fn().mockResolvedValue({ port: 3000, db: { host: 'localhost', password: 'native-pw' } }),
     } as unknown as NativeConfigProvider;
     const vaultConfigProvider = {
-      load: jest.fn().mockResolvedValue({ db: { password: 'secret' } }),
+      load: jest.fn().mockResolvedValue({ db: { password: 'vault-pw' } }),
     } as unknown as VaultConfigProvider;
 
     const service = new ConfigMergeService(nativeConfigProvider, vaultConfigProvider);
     const result = await service.getMergedConfig('auth', 'local');
 
-    expect(result).toEqual({ port: 3000, db: { host: 'localhost', password: 'secret' } });
+    expect(result).toEqual({ port: 3000, db: { host: 'localhost', password: 'vault-pw' } });
   });
 
   it('propagates ProfileNotFoundError from the native provider', async () => {

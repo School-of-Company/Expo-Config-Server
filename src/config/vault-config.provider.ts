@@ -26,7 +26,7 @@ export class VaultConfigProvider {
 
     let response: Response;
     try {
-      response = await fetch(`${vaultAddr}/v1/secret/data/${path}`, {
+      response = await fetch(`${vaultAddr}/v1/secret/data/${encodeURIComponent(path)}`, {
         headers: { 'X-Vault-Token': vaultToken },
       });
     } catch (error) {
@@ -40,7 +40,11 @@ export class VaultConfigProvider {
       throw new VaultUnavailableError(`Vault responded with status ${response.status}`);
     }
 
-    const body = (await response.json()) as { data?: { data?: ConfigRecord } };
-    return body.data?.data ?? {};
+    try {
+      const body = (await response.json()) as { data?: { data?: ConfigRecord } };
+      return body.data?.data ?? {};
+    } catch (error) {
+      throw new VaultUnavailableError(`Vault returned a malformed response: ${(error as Error).message}`);
+    }
   }
 }
