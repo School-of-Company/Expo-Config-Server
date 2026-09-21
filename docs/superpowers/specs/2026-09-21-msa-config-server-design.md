@@ -67,7 +67,12 @@ Vault secret/{service} > Vault secret/application > native configs/{service}-{pr
 - `service`: 서비스 식별자 (예: `auth`, `expo`, `application`, `gateway`)
 - `profile`: 환경 식별자 (예: `local`, `dev`, `prod`)
 - 응답: 병합된 설정을 담은 단일 JSON 객체 (평탄화된 key-value)
-- 실패 시: Vault 조회 실패 또는 native 파일 없음 → `503` 반환. 클라이언트는 이를 fail-fast 신호로 취급.
+- 실패 시:
+  - `application-{profile}.yml`이 없음 (그 프로파일 자체가 정의되지 않음) → `404`.
+    `{service}-{profile}.yml`만 없는 경우는 에러가 아님 — 공통 설정만 반환 (서비스가 아직
+    자기 override가 없는 정상 상태).
+  - Vault 조회 실패 (네트워크 오류, 인증 실패 등) → `503`
+  - 클라이언트는 두 경우 모두 fail-fast 신호로 취급 (재시도 없이 기동 실패).
 
 ## 설정 파일 레이아웃 (native)
 
@@ -118,7 +123,8 @@ API key 헤더 검증을 추가하는 정도로 확장 가능.
 
 - `ConfigMergeService`: 우선순위대로 병합되는지 (Vault 서비스 경로 > Vault 공통 > native) 단위테스트
 - `VaultConfigProvider`: Vault mock(HTTP mock)으로 조회/에러 케이스 테스트
-- `ConfigController`: 정상 응답 / 404(정의 안 된 service-profile) / 503(Vault 실패) 케이스
+- `ConfigController`: 정상 응답(공통만 있는 경우 포함) / 404(`application-{profile}.yml` 자체가
+  없는 미정의 profile) / 503(Vault 실패) 케이스
 - 클라이언트 부트스트랩 유틸: Config Server 실패 시 fail-fast 하는지 단위테스트
 
 ## 클라이언트 통합 (16개 서비스 공통)
