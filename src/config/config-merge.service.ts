@@ -10,7 +10,10 @@ export class ConfigMergeService {
     private readonly vaultConfigProvider: VaultConfigProvider,
   ) {}
 
-  async getMergedConfig(service: string, profile: string): Promise<ConfigRecord> {
+  async getMergedConfig(
+    service: string,
+    profile: string,
+  ): Promise<ConfigRecord> {
     const [native, vault] = await Promise.all([
       this.nativeConfigProvider.load(service, profile),
       this.vaultConfigProvider.load(service),

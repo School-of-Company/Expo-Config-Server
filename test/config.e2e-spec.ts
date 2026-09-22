@@ -31,17 +31,24 @@ describe('Config API (e2e)', () => {
     await writeFile(join(configDir, 'application-local.yml'), 'port: 3000\n');
     await writeFile(join(configDir, 'auth-local.yml'), 'serviceName: auth\n');
 
-    fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async (url) => {
-      const path = String(url);
+    fetchSpy = jest.spyOn(global, 'fetch').mockImplementation((url) => {
+      const path = url as string;
       if (path.endsWith('/secret/data/application')) {
-        return new Response(JSON.stringify({ data: { data: {} } }), { status: 200 });
+        return Promise.resolve(
+          new Response(JSON.stringify({ data: { data: {} } }), { status: 200 }),
+        );
       }
       if (path.endsWith('/secret/data/auth')) {
-        return new Response(JSON.stringify({ data: { data: { dbPassword: 'auth-pw' } } }), {
-          status: 200,
-        });
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({ data: { data: { dbPassword: 'auth-pw' } } }),
+            {
+              status: 200,
+            },
+          ),
+        );
       }
-      return new Response('not found', { status: 404 });
+      return Promise.resolve(new Response('not found', { status: 404 }));
     });
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -60,7 +67,9 @@ describe('Config API (e2e)', () => {
   });
 
   it('GET /configs/auth/local merges native and vault config', async () => {
-    const response = await request(app!.getHttpServer()).get('/configs/auth/local');
+    const response = await request(app!.getHttpServer()).get(
+      '/configs/auth/local',
+    );
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
@@ -71,7 +80,9 @@ describe('Config API (e2e)', () => {
   });
 
   it('GET /configs/auth/missing-profile returns 404', async () => {
-    const response = await request(app!.getHttpServer()).get('/configs/auth/missing-profile');
+    const response = await request(app!.getHttpServer()).get(
+      '/configs/auth/missing-profile',
+    );
 
     expect(response.status).toBe(404);
   });

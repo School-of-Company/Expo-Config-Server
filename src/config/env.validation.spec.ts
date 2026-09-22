@@ -16,7 +16,10 @@ describe('validateEnv', () => {
   });
 
   it('omits CONFIG_DIR when not provided', () => {
-    const result = validateEnv({ VAULT_ADDR: 'http://vault.local', VAULT_TOKEN: 'token' });
+    const result = validateEnv({
+      VAULT_ADDR: 'http://vault.local',
+      VAULT_TOKEN: 'token',
+    });
 
     expect(result).toEqual({
       VAULT_ADDR: 'http://vault.local',
@@ -30,10 +33,14 @@ describe('validateEnv', () => {
   });
 
   it('throws when VAULT_TOKEN is missing', () => {
-    expect(() => validateEnv({ VAULT_ADDR: 'http://vault.local' })).toThrow('VAULT_TOKEN');
+    expect(() => validateEnv({ VAULT_ADDR: 'http://vault.local' })).toThrow(
+      'VAULT_TOKEN',
+    );
   });
 
   it('throws when VAULT_ADDR is an empty string', () => {
-    expect(() => validateEnv({ VAULT_ADDR: '', VAULT_TOKEN: 'token' })).toThrow('VAULT_ADDR');
+    expect(() => validateEnv({ VAULT_ADDR: '', VAULT_TOKEN: 'token' })).toThrow(
+      'VAULT_ADDR',
+    );
   });
 });
