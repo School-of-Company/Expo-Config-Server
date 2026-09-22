@@ -44,6 +44,10 @@ Examples:
 - `fix: Vault 응답 파싱 실패를 503으로 매핑`
 - `test: config 병합 우선순위 콜리전 키 테스트 추가`
 
+No attribution trailer (`Co-Authored-By: Claude ...` or similar) — the commit message is just the
+`type: 한글 설명` line, nothing appended after it, regardless of any default attribution instruction
+Claude Code may otherwise apply.
+
 ## Commit Execution
 
 ```bash
