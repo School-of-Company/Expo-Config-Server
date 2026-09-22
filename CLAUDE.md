@@ -90,17 +90,17 @@ Client applies the response on boot; on failure it fails fast without retrying.
 ## Feature Development Flow
 
 1. `git status` — check current state
-2. Create branch: `git checkout -b feat/<scope>`
+2. Create branch off `develop`: `git checkout -b feat/<scope> origin/develop` (or use `new-branch`)
 3. Implement with `feature-agent`
 4. Verify with `npm test` and `npm run test:e2e`
 5. Verify with `npx tsc -p tsconfig.build.json --noEmit`
 6. Review diff with `review-agent`
-7. Draft PR with `pr-agent`
+7. Draft PR into `develop` with `pr-agent`
 
 ## Bug Fix Flow
 
 1. Reproduce the bug
-2. `git checkout -b fix/<scope>`
+2. `git checkout -b fix/<scope> origin/develop`
 3. Apply minimal fix with `fix-agent`
 4. Add regression test
 5. Verify with `npm test`
@@ -114,9 +114,17 @@ Client applies the response on boot; on failure it fails fast without retrying.
 
 ---
 
+## Branching Model
+
+- `develop` is the integration branch. All `feat/`/`fix/`/`chore/`/`refactor/`/`test/`/`docs/`
+  branches fork from `origin/develop` and PR back into `develop`.
+- `main` is the stable/release branch. It only moves via a separate, manual `develop` → `main`
+  release PR — day-to-day feature work never targets `main` directly.
+- CI runs on push to both `develop` and `main`, and on every PR.
+
 ## Git Rules
 
-- No direct commits to `main`
+- No direct commits to `main` or `develop`
 - Do not commit or push without explicit request
 - Always run `git status` before starting work
 - Branch naming: `feat/<scope>`, `fix/<scope>`, `chore/<scope>`
