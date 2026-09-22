@@ -1,6 +1,9 @@
 export type ConfigRecord = Record<string, unknown>;
 
-export function deepMerge(base: ConfigRecord, override: ConfigRecord): ConfigRecord {
+export function deepMerge(
+  base: ConfigRecord,
+  override: ConfigRecord,
+): ConfigRecord {
   const result: ConfigRecord = { ...base };
 
   for (const key of Object.keys(override)) {

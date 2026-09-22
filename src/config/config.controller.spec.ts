@@ -19,7 +19,9 @@ describe('ConfigController', () => {
   it('maps ProfileNotFoundError to a 404 HttpException', async () => {
     expect.assertions(2);
     const configMergeService = {
-      getMergedConfig: jest.fn().mockRejectedValue(new ProfileNotFoundError('missing')),
+      getMergedConfig: jest
+        .fn()
+        .mockRejectedValue(new ProfileNotFoundError('missing')),
     } as unknown as ConfigMergeService;
     const controller = new ConfigController(configMergeService);
 
@@ -34,7 +36,9 @@ describe('ConfigController', () => {
   it('maps VaultUnavailableError to a 503 HttpException', async () => {
     expect.assertions(2);
     const configMergeService = {
-      getMergedConfig: jest.fn().mockRejectedValue(new VaultUnavailableError('down')),
+      getMergedConfig: jest
+        .fn()
+        .mockRejectedValue(new VaultUnavailableError('down')),
     } as unknown as ConfigMergeService;
     const controller = new ConfigController(configMergeService);
 
@@ -42,7 +46,9 @@ describe('ConfigController', () => {
       await controller.getConfig('auth', 'local');
     } catch (error) {
       expect(error).toBeInstanceOf(HttpException);
-      expect((error as HttpException).getStatus()).toBe(HttpStatus.SERVICE_UNAVAILABLE);
+      expect((error as HttpException).getStatus()).toBe(
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
     }
   });
 
@@ -51,7 +57,11 @@ describe('ConfigController', () => {
     const configMergeService = {
       getMergedConfig: jest
         .fn()
-        .mockRejectedValue(new VaultUnavailableError('Failed to reach Vault: connect ECONNREFUSED 10.0.5.12:8200')),
+        .mockRejectedValue(
+          new VaultUnavailableError(
+            'Failed to reach Vault: connect ECONNREFUSED 10.0.5.12:8200',
+          ),
+        ),
     } as unknown as ConfigMergeService;
     const controller = new ConfigController(configMergeService);
 
@@ -65,8 +75,9 @@ describe('ConfigController', () => {
 
   it('rejects a path-traversal-shaped service or profile with 400 without calling the merge service', async () => {
     expect.assertions(5);
+    const getMergedConfig = jest.fn();
     const configMergeService = {
-      getMergedConfig: jest.fn(),
+      getMergedConfig,
     } as unknown as ConfigMergeService;
     const controller = new ConfigController(configMergeService);
 
@@ -84,6 +95,6 @@ describe('ConfigController', () => {
       expect((error as HttpException).getStatus()).toBe(HttpStatus.BAD_REQUEST);
     }
 
-    expect(configMergeService.getMergedConfig).not.toHaveBeenCalled();
+    expect(getMergedConfig).not.toHaveBeenCalled();
   });
 });

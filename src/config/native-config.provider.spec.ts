@@ -2,7 +2,10 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ConfigService } from '@nestjs/config';
-import { NativeConfigProvider, ProfileNotFoundError } from './native-config.provider';
+import {
+  NativeConfigProvider,
+  ProfileNotFoundError,
+} from './native-config.provider';
 import { AppEnv } from './env.validation';
 
 function providerWithConfigDir(configDir: string): NativeConfigProvider {
@@ -31,7 +34,10 @@ describe('NativeConfigProvider', () => {
       join(configDir, 'application-local.yml'),
       'port: 3000\ndb:\n  host: localhost\n',
     );
-    await writeFile(join(configDir, 'auth-local.yml'), 'db:\n  password: devpass\n');
+    await writeFile(
+      join(configDir, 'auth-local.yml'),
+      'db:\n  password: devpass\n',
+    );
 
     const provider = providerWithConfigDir(configDir);
     const result = await provider.load('auth', 'local');

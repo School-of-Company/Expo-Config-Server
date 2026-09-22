@@ -25,30 +25,41 @@ export class VaultConfigProvider {
     const vaultToken = this.configService.get('VAULT_TOKEN', { infer: true });
 
     if (!vaultAddr || !vaultToken) {
-      throw new VaultUnavailableError('VAULT_ADDR or VAULT_TOKEN is not configured');
+      throw new VaultUnavailableError(
+        'VAULT_ADDR or VAULT_TOKEN is not configured',
+      );
     }
 
     let response: Response;
     try {
-      response = await fetch(`${vaultAddr}/v1/secret/data/${encodeURIComponent(path)}`, {
-        headers: { 'X-Vault-Token': vaultToken },
-      });
+      response = await fetch(
+        `${vaultAddr}/v1/secret/data/${encodeURIComponent(path)}`,
+        {
+          headers: { 'X-Vault-Token': vaultToken },
+        },
+      );
     } catch (error) {
-      throw new VaultUnavailableError(`Failed to reach Vault: ${(error as Error).message}`);
+      throw new VaultUnavailableError(
+        `Failed to reach Vault: ${(error as Error).message}`,
+      );
     }
 
     if (response.status === 404) {
       return {};
     }
     if (!response.ok) {
-      throw new VaultUnavailableError(`Vault responded with status ${response.status}`);
+      throw new VaultUnavailableError(
+        `Vault responded with status ${response.status}`,
+      );
     }
 
     let body: unknown;
     try {
       body = await response.json();
     } catch {
-      throw new VaultUnavailableError('Vault returned a response that could not be parsed as JSON');
+      throw new VaultUnavailableError(
+        'Vault returned a response that could not be parsed as JSON',
+      );
     }
 
     const data = isPlainObject(body) ? body.data : undefined;
@@ -58,7 +69,9 @@ export class VaultConfigProvider {
       return {};
     }
     if (!isPlainObject(secretData)) {
-      throw new VaultUnavailableError('Vault returned a secret payload that was not a JSON object');
+      throw new VaultUnavailableError(
+        'Vault returned a secret payload that was not a JSON object',
+      );
     }
     return secretData;
   }

@@ -18,7 +18,10 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
   const configDir = config.CONFIG_DIR;
 
   return {
-    CONFIG_DIR: typeof configDir === 'string' && configDir.length > 0 ? configDir : undefined,
+    CONFIG_DIR:
+      typeof configDir === 'string' && configDir.length > 0
+        ? configDir
+        : undefined,
     VAULT_ADDR: vaultAddr,
     VAULT_TOKEN: vaultToken,
   };
