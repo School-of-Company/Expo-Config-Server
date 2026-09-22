@@ -31,24 +31,24 @@ Leave unrelated files unstaged. Notify the user if any are skipped.
 ## Message Format
 
 ```
-type: description
+type: 한글 설명
 ```
 
 - type: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`
-- Present-tense, concise description
-- No trailing period
-- Under 70 characters total
+- 한글로 간결하게 작성
+- 마침표 없음
+- 전체 70자 이내
 
 Examples:
-- `feat: validate service/profile route params`
-- `fix: map malformed Vault response to 503`
-- `test: add colliding-key test for config merge priority`
+- `feat: service/profile 라우트 파라미터 검증 추가`
+- `fix: Vault 응답 파싱 실패를 503으로 매핑`
+- `test: config 병합 우선순위 콜리전 키 테스트 추가`
 
 ## Commit Execution
 
 ```bash
 git commit -m "$(cat <<'EOF'
-type: description
+type: 한글 설명
 EOF
 )"
 ```

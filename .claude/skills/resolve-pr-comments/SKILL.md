@@ -53,7 +53,7 @@ Do not use this skill for local self-review before creating a PR (use `review-lo
 7. Commit and push — this is part of the skill, not a separate step:
    ```bash
    git add <changed files>
-   git commit -m "fix: address PR review feedback - <summary>"
+   git commit -m "fix: PR 리뷰 반영 - <요약>"
    git push origin <branch-name>
    ```
 
