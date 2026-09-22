@@ -120,6 +120,7 @@ Client applies the response on boot; on failure it fails fast without retrying.
 - Do not commit or push without explicit request
 - Always run `git status` before starting work
 - Branch naming: `feat/<scope>`, `fix/<scope>`, `chore/<scope>`
+- Do not add a `Co-Authored-By: Claude` (or similar AI attribution) trailer to commits or PRs in this repo — commits are authored by the person running Claude Code, full stop
 
 ## Coding Standards
 
