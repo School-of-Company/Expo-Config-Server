@@ -32,6 +32,8 @@ VAULT_TOKEN=dev-root-token ./scripts/seed-jwt-keys.sh
 VAULT_ADDR=https://vault.example AUTH_SERVICE=user VAULT_TOKEN=... ./scripts/seed-jwt-keys.sh
 ```
 
+- 스크립트는 기존 키쌍이 있어도 **항상 새 쌍으로 덮어쓴다** (별도 확인 절차 없음). 운영 중인 환경에서
+  실행하면 이전 키로 서명된 토큰이 전부 무효가 되므로, 의도한 로테이션일 때만 실행한다.
 - 두 경로를 동시에 쓰는 원자적 연산은 Vault에 없다. 두 번째 쓰기가 실패하면 스크립트가 에러로 종료하므로
   **그대로 다시 실행**하면 새 쌍이 양쪽에 다시 들어간다.
 - 서비스는 부팅 시에만 설정을 읽는다(핫리로드 없음). 실행 후 유저 서비스와 Gateway를 **둘 다 재시작**한다.

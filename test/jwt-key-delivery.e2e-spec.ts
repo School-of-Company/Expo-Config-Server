@@ -109,14 +109,19 @@ describe('JWT signing key delivery (e2e)', () => {
   it('delivers a key pair that signs on auth and verifies on gateway (RS256)', async () => {
     const authConfig = await fetchConfig('auth');
     const gatewayConfig = await fetchConfig('gateway');
+    const deliveredPrivateKey = authConfig.jwt.privateKey;
+    const deliveredPublicKey = gatewayConfig.jwt.publicKey;
+    if (deliveredPrivateKey === undefined || deliveredPublicKey === undefined) {
+      throw new Error('auth/gateway config did not include the delivered key');
+    }
     const signingInput = 'header.payload';
 
     const signature = createSign('RSA-SHA256')
       .update(signingInput)
-      .sign(authConfig.jwt.privateKey as string);
+      .sign(deliveredPrivateKey);
     const verified = createVerify('RSA-SHA256')
       .update(signingInput)
-      .verify(gatewayConfig.jwt.publicKey as string, signature);
+      .verify(deliveredPublicKey, signature);
 
     expect(verified).toBe(true);
   });
