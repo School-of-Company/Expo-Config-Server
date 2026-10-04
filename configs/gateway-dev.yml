@@ -1,0 +1,31 @@
+# Vault secret/gateway: jwt.publicKey. 채워 넣는 방법은 docs/service-configs.md 참고.
+port: 3000
+
+eureka:
+  serviceUrl: "http://<EUREKA_HOST>:8761/eureka"
+
+routing:
+  prefixes:
+    /auth: expo-auth-server
+    /trainee: expo-trainee-server
+    /participant: expo-participant-server
+    /admin: expo-admin-server
+    /expo: expo-expo-server
+    /training: expo-training-server
+    /standard: expo-standard-server
+    /image: expo-image-server
+    /forms: expo-form-server
+    /surveys: expo-form-server
+    /sms: expo-sms-server
+    /application: expo-application-server
+    /attendance: expo-attendance-server
+    /excel: expo-report-server
+    /stat: expo-report-server
+
+rateLimit:
+  ttlSeconds: 60
+  limit: 100
+
+publicPaths:
+  - /auth
+  - /health
