@@ -26,5 +26,7 @@ rateLimit:
   limit: 100
 
 publicPaths:
-  - /auth
   - /health
+  - POST /auth
+  - POST /auth/signin
+  - PATCH /auth
