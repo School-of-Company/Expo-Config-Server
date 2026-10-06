@@ -43,8 +43,9 @@
   파일을 추가하고 `src/config/configs-files.spec.ts`의 `SERVICES`에도 넣는다.
 - `form`은 Eureka 등록 여부를 확인하지 못해 eureka 키가 없다. Redis 비밀번호 사용 여부도 미확인이라
   `spring.data.redis.password`는 넣지 않았다.
-- `gateway-*.yml`의 `routing`은 `gateway-local.yml`을 그대로 복사했다. 유저 서비스 4개 prefix 문제는 #6에서
-  다루고 있다.
+- `gateway-*.yml`의 `routing`은 `gateway-local.yml`을 그대로 복사했다. 유저 서비스 prefix 4개(`/auth`,
+  `/admin`, `/trainee`, `/participant`)는 Expo-User-Server가 하나의 `expo-user-server`로 등록되므로 모두
+  `expo-user-server`로 보낸다 (#6 참고).
 - `application-{local,dev,prod}.yml`의 `port: 3000`은 초기 placeholder인데 전 서비스에 병합된다 (Spring
   서비스에서는 쓰이지 않는 키). 정리가 필요하다.
 - Report 서비스의 `application.yaml`은 `spring.security.user.password: ${LOCAL_SECURITY_PASSWORD}`를
