@@ -15,7 +15,7 @@ routing:
     /image: expo-image-server
     /forms: expo-form-server
     /surveys: expo-form-server
-    /sms: expo-sms-server
+    /sms: expo-notification-server
     /application: expo-application-server
     /attendance: expo-attention-server
     /excel: expo-report-server
