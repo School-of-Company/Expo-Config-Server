@@ -5,7 +5,15 @@ import { isPlainObject } from './deep-merge';
 
 const configsDir = join(__dirname, '..', '..', 'configs');
 
-const SERVICES = ['gateway', 'auth', 'expo', 'apply', 'report', 'form'];
+const SERVICES = [
+  'gateway',
+  'auth',
+  'expo',
+  'apply',
+  'report',
+  'form',
+  'notification',
+];
 const PROFILES = ['dev', 'prod'];
 
 describe('configs/ files', () => {
