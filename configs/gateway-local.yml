@@ -5,10 +5,10 @@ eureka:
 
 routing:
   prefixes:
-    /auth: expo-auth-server
-    /trainee: expo-trainee-server
-    /participant: expo-participant-server
-    /admin: expo-admin-server
+    /auth: expo-user-server
+    /trainee: expo-user-server
+    /participant: expo-user-server
+    /admin: expo-user-server
     /expo: expo-expo-server
     /training: expo-training-server
     /standard: expo-standard-server
@@ -17,7 +17,7 @@ routing:
     /surveys: expo-form-server
     /sms: expo-sms-server
     /application: expo-application-server
-    /attendance: expo-attendance-server
+    /attendance: expo-attention-server
     /excel: expo-report-server
     /stat: expo-report-server
 
