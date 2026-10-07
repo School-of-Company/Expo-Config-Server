@@ -58,6 +58,18 @@ describe('JWT signing key delivery (e2e)', () => {
           ),
         );
       }
+      // Expo, Report 는 role 클레임 검증을 위해 같은 공개키를 JWT_PUBLIC_KEY 로 받는다
+      if (
+        path.endsWith('/secret/data/expo') ||
+        path.endsWith('/secret/data/report')
+      ) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({ data: { data: { JWT_PUBLIC_KEY: publicKey } } }),
+            { status: 200 },
+          ),
+        );
+      }
       return Promise.resolve(new Response('not found', { status: 404 }));
     });
 
@@ -105,6 +117,23 @@ describe('JWT signing key delivery (e2e)', () => {
       requestedVaultPaths.some((path) => path.endsWith('/secret/data/auth')),
     ).toBe(false);
   });
+
+  it.each(['expo', 'report'])(
+    'delivers only the public key to %s and never reads the auth secret',
+    async (service) => {
+      const response = await request(app!.getHttpServer()).get(
+        `/configs/${service}/local`,
+      );
+      expect(response.status).toBe(200);
+      const config = response.body as { JWT_PUBLIC_KEY?: string };
+
+      expect(config.JWT_PUBLIC_KEY).toBe(publicKey);
+      expect(JSON.stringify(response.body)).not.toContain(privateKey);
+      expect(
+        requestedVaultPaths.some((path) => path.endsWith('/secret/data/auth')),
+      ).toBe(false);
+    },
+  );
 
   it('delivers a key pair that signs on auth and verifies on gateway (RS256)', async () => {
     const authConfig = await fetchConfig('auth');
