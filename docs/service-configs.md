@@ -9,14 +9,15 @@
 | 식별자 | 서비스 리포 | yml에 있는 키 | Vault에 넣을 값 |
 |---|---|---|---|
 | `gateway` | Expo-Gateway (NestJS) | `port`, `eureka.serviceUrl`, `routing`, `rateLimit`, `publicPaths` | `secret/gateway` → `jwt.publicKey` |
-| `auth` | Expo-User-Server (Spring) | `spring.datasource.url/username`, `spring.data.redis`, `eureka.client` | `secret/auth` → `spring.datasource.password`, `jwt.privateKey` |
-| `expo` | Expo-Expo-Server (Spring) | 위와 같음 (DB `expo`) | `secret/expo` → `spring.datasource.password` |
-| `apply` | Expo-Application-Server (Spring) | 위와 같음 (DB `expo_application`) | `secret/apply` → `spring.datasource.password` |
+| `auth` | Expo-User-Server (Spring) | `spring.datasource.url/username`, `spring.data.redis`, `eureka.client` | `secret/auth` → `spring.datasource.password`, `jwt.privateKey`, 내부 토큰(`internal.token`, `clients.expo.internal-token`) |
+| `expo` | Expo-Expo-Server (Spring) | 위와 같음 (DB `expo`) | `secret/expo` → `spring.datasource.password`, 내부 토큰(`EXPO_INTERNAL_TOKEN`, `expo.*.internal-token`) |
+| `apply` | Expo-Application-Server (Spring) | 위와 같음 (DB `expo_application`) | `secret/apply` → `spring.datasource.password`, 내부 토큰(`application.internal-token`) |
 | `report` | Expo-Report-Server (Spring) | `spring.datasource.url/username`, `eureka.client` (Redis 없음) | `secret/report` → `spring.datasource.password` |
-| `form` | Expo-Form-Server (NestJS) | `port`, `database.sslRejectUnauthorized`(prod만) | `secret/form` → `database.url` (접속 계정 포함 전체 URL) |
+| `form` | Expo-Form-Server (NestJS) | `port`, `database.sslRejectUnauthorized`(prod만) | `secret/form` → `database.url` (접속 계정 포함 전체 URL), 내부 토큰(`INTERNAL_TOKEN`, `USER_SERVICE_INTERNAL_TOKEN`) |
 | `notification` | Expo-Notification-Server (NestJS) | `port`, `kafka`, `redis`, `sms`(발신번호·발송 한도), `eureka.serviceUrl` (`local` 파일도 있음) | `secret/notification` → `sms.apiKey`, `sms.apiSecret`, `discord.participantNumberUrl`(선택), `redis.password`(쓰는 경우) |
 
-`auth`는 `auth`/`user` 중 무엇으로 할지 아직 미확정이다 (`docs/jwt-signing-key.md` 참고). Spring 서비스의
+서비스 간 내부 호출 토큰의 경로·키 이름과 발급 방법은 `docs/internal-token.md`에 있다. 유저 서비스 식별자는 `auth`를 유지한다
+(이미 `auth-*.yml`, `secret/auth`, 문서가 이 이름을 쓴다. 근거는 `docs/internal-token.md`). Spring 서비스의
 키는 Spring 속성 이름 그대로 중첩해 두었다. 나중에 Spring 호환 엔드포인트를 붙일 때 평탄화만 하면 되게
 하려는 것이고, 그 결정 전까지는 이 구조가 확정은 아니다.
 
