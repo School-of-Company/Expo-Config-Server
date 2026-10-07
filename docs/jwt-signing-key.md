@@ -82,8 +82,10 @@ VAULT_ADDR=https://vault.example AUTH_SERVICE=user VAULT_TOKEN=... ./scripts/see
 ` 한 줄 또는 실제 줄바꿈 둘 다 됨 (헤더 제거 후 MIME Base64 디코드) |
 | Gateway | (Config Server → `secret/gateway`의 `jwt.publicKey`) | 이미 Config Server로 받음 |
 
-키 원본은 Vault에 두고(이 스크립트), 환경변수는 거기서 꺼내 넣는다. glink.kr 서버가 이 방식이다.
-Config Server 연동이 되면 환경변수 대신 위 Vault 경로를 바로 읽으면 된다.
+Config Server 연동은 `GET /spring/:name/:profile`(#12)로 한다. 연동되면 유저 서비스는 `jwt.privateKey`를
+`/spring/auth/<profile>`에서 바로 읽는다. 단, Config Server에는 인증이 없으므로 **접근을 막을 수 없는 환경에서는
+개인키를 Vault에 넣지 말고** 환경변수로만 넣는다 (`docs/service-configs.md`의 "접근 제어"). glink.kr 서버는
+여러 계정이 쓰는 서버라 개인키를 Vault에 두지 않고 유저 서비스 환경변수로만 넣는다.
 
 ## 정리된 항목 (#6)
 
@@ -93,5 +95,5 @@ Config Server 연동이 되면 환경변수 대신 위 Vault 경로를 바로 �
 - **로테이션**: 위 "로테이션" 절. 무중단 교체는 `kid` 도입 후속 작업.
 - **다른 시크릿**: 위 "다른 시크릿" 절의 규칙.
 - **Gateway 라우팅 prefix**: #15에서 `/auth`, `/admin`, `/trainee`, `/participant`를 `expo-user-server`로 정리했다.
-- **유저 서비스가 Config Server에서 키를 읽는 것**: Spring Cloud Config Client 호환 엔드포인트(#12)와 유저 서비스 쪽
-  `spring.config.import` 작업이 필요하다. 이 문서의 규약은 그대로 쓰면 된다.
+- **유저 서비스가 Config Server에서 키를 읽는 것**: 호환 엔드포인트 `GET /spring/:name/:profile`(#12)가 생겼다.
+  유저 서비스 쪽 `spring.config.import=configserver:.../spring` 작업만 남았다. 접근 제어 전까지는 위 주의를 따른다.

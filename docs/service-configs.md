@@ -79,6 +79,58 @@ vault kv patch -mount=secret notification - < secret.json
   붙이면 된다 (처음이면 `put`, 이미 있으면 `patch`).
 - 이 방식은 위 표의 모든 서비스(`secret/{식별자}`)에 똑같이 적용된다.
 
+## Spring 서비스 연결 (`/spring`, #12)
+
+Spring Cloud Config Client는 `propertySources`가 든 Environment JSON을 기대해서 `/configs/...`(중첩 JSON)에는
+그대로 붙지 않는다. 그래서 같은 병합 결과를 Spring 형식으로 돌려주는 경로를 따로 둔다.
+`/configs/:service/:profile`는 Gateway·Form이 쓰는 계약이라 바꾸지 않았다.
+
+| 경로 | 응답 |
+|---|---|
+| `GET /spring/:name/:profile` | `{name, profiles: [profile], label: null, version: null, state: null, propertySources: [{name: "<name>-<profile>", source}]}` |
+| `GET /spring/:name/:profile/:label` | 위와 같음 (label은 지원하지 않고 무시) |
+
+`source`는 `/configs/:name/:profile`와 같은 병합 결과(Vault `secret/{name}` > Vault `secret/application` > yml)를
+펼친 것이다 (`src/config/flatten-config.ts`).
+
+- 중첩 객체는 점으로 잇는다: `spring.datasource.url`
+- 배열은 `key[0]`: `publicPaths[0]`, 배열 안의 객체는 `servers[0].host`
+- 문자열·숫자·불리언은 타입 그대로 둔다
+- `null`, 빈 객체·빈 배열은 키를 만들지 않는다 (Spring에서 "설정 안 됨" → 기본값 사용)
+- 키 안의 점은 그대로 둔다: `metadata-map: {prometheus.scrape: "true"}` → `...metadata-map.prometheus.scrape`
+  (Spring Map 바인딩은 나머지 경로를 키로 쓰므로 같은 값으로 읽힌다)
+- 오류는 `/configs`와 같다: 잘못된 식별자·프로파일 `400`, 프로파일 없음 `404`, Vault 장애 `503`
+  (빈 설정으로 내려주면 서비스가 비밀 값 없이 기동하므로 실패로 돌려준다)
+- **프로파일은 하나만** 받는다. `dev,local` 같은 여러 개는 식별자 검증에서 `400`이다.
+
+Spring 서비스 쪽 설정 (예: 유저 서비스):
+
+```yaml
+spring:
+  application:
+    name: expo-user-server
+  config:
+    import: configserver:http://<config-host>:<port>/spring
+  cloud:
+    config:
+      name: auth          # 이 리포의 서비스 식별자 (파일 이름·Vault 경로와 같게)
+      profile: dev
+      fail-fast: true     # Config Server 가 응답하지 않으면 기동 실패
+```
+
+## 접근 제어 (중요)
+
+Config Server에는 **인증이 없다.** `/configs/...`와 `/spring/...` 모두 포트에 닿는 누구에게나 Vault 값까지 병합해
+내려준다. 지금은 네트워크 수준 제한(방화벽, 바인딩 주소)에만 의존한다.
+
+- 외부 방화벽이 막아도, **같은 서버의 다른 계정**은 `127.0.0.1:<port>`로 닿는다. 여러 사람이 쓰는 서버라면
+  그 사람들이 개인키·DB 비밀번호를 읽을 수 있다. (glink.kr 서버에서 실제로 확인했고, 그래서 그 서버는 JWT 개인키를
+  Vault에 두지 않고 환경변수로만 유저 서비스에 넣는다.)
+- 따라서 **인증을 붙이기 전까지는**, 접근을 막을 수 없는 환경에서 `secret/{service}`에 민감한 값(개인키, DB 비밀번호,
+  내부 토큰)을 넣지 않는다. 그런 환경에서는 해당 서비스에 환경변수로 직접 넣는다.
+- 인증을 붙인다면 Spring Cloud Config Client가 기본 지원하는 Basic 인증(`spring.cloud.config.username/password`)이
+  가장 적게 바꾸는 방법이다. Gateway·Form도 `/configs` 호출에 같은 헤더를 보내야 한다 (후속 작업).
+
 ## 공용 파일(`application-{profile}.yml`) 주의
 
 공용 파일의 값은 **모든 서비스**에 병합된다. 서비스 전용 파일에 같은 키가 있으면 서비스 쪽이 우선하므로
