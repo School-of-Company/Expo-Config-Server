@@ -30,6 +30,10 @@
   발송할 때에야 실패하므로, 배포 전에 위 `grep`으로 반드시 확인한다. 이 번호가 public 리포에 올려도 되는
   번호인지는 먼저 정한다. 올리면 안 되는 번호라면 yml이 아니라 Vault `secret/notification`에 같은 키로 넣는다
   (같은 키는 Vault 값이 yml보다 우선한다).
+- `notification-local.yml`은 발신번호를 파일에 두지 않는다. 알림 서버는 원격 값이 환경변수보다 우선해서,
+  파일에 placeholder가 있으면 `SMS_FROM_STANDARD_NUMBER`/`SMS_FROM_TRAINEE_NUMBER`의 실제 번호를 덮어쓰기
+  때문이다. 로컬에서는 이 두 환경변수나 Vault로 주고, 안 주면 알림 서버가 부팅할 때 실패한다. 같은 이유로
+  `local`의 `port`는 config 서버 docker compose가 쓰는 3000이 아니라 3001이다.
 - DB 이름과 계정(`expo_user`, `expo` 등)은 각 서비스의 로컬 기본값을 따왔다. 실제 환경과 다르면 고친다.
 - **비밀 값은 yml에 쓰지 않는다.** 위 표의 Vault 값은 `secret/{식별자}`에 넣는다. 이 리포는 public이라
   한 번 커밋하면 지워도 공개된 것으로 봐야 한다. DB/Redis 호스트 같은 내부 주소를 public 리포에 올릴지도
@@ -43,21 +47,35 @@
 `vault kv put ... sms.apiKey=값`처럼 점이 들어간 이름으로 넣으면 `sms` 객체에 병합되지 않아서 서비스는 값이
 없다고 본다 (알림 서버로 직접 확인했다).
 
-시크릿 파일을 만들어 stdin으로 넣고 바로 지운다. 이렇게 하면 비밀 값이 셸 히스토리나 명령 인자에 남지 않는다.
+시크릿 파일(`secret.json`)을 만들어 stdin으로 넣고 바로 지운다. 이렇게 하면 비밀 값이 셸 히스토리나 명령
+인자에 남지 않는다. 경로에 이미 값이 있는지에 따라 아래 둘 중 **하나만** 실행한다.
 
-```bash
-# secret.json (예: notification)
-# {"sms": {"apiKey": "...", "apiSecret": "..."}, "discord": {"participantNumberUrl": "..."}}
+`secret.json` 예시 (notification):
 
-vault kv put   -mount=secret notification - < secret.json   # 경로를 새로 만들거나 통째로 교체
-vault kv patch -mount=secret notification - < secret.json   # 기존 키는 두고 추가/수정만
-rm secret.json
+```json
+{"sms": {"apiKey": "...", "apiSecret": "..."}, "discord": {"participantNumberUrl": "..."}}
 ```
 
-- `put`은 그 경로의 값을 통째로 교체하고, `patch`는 JSON에 적은 키만 바꾼다. 이미 값이 있는 경로에 `put`을
-  쓰면 JSON에 없는 기존 키가 사라진다.
-- 로컬 dev-mode Vault(docker compose)에 넣을 때는 컨테이너 안의 CLI를 쓴다:
-  `docker exec -i -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN=dev-root-token expo-config-vault vault kv patch -mount=secret notification - < secret.json`
+**1. 경로에 값이 아직 없을 때 (처음 만들 때): `put`**
+
+```bash
+vault kv put -mount=secret notification - < secret.json
+```
+
+**2. 경로에 이미 값이 있을 때 (일부만 추가/수정): `patch`**
+
+```bash
+vault kv patch -mount=secret notification - < secret.json
+```
+
+끝나면 `rm secret.json`으로 지운다.
+
+- 두 명령을 이어서 실행하지 않는다. 이미 값이 있는 경로에 `put`을 쓰면 JSON에 없는 기존 키가 사라지고,
+  `patch`는 지워진 키를 되돌리지 못한다. 반대로 값이 없는 경로에 `patch`를 쓰면 404로 실패한다 (둘 다 로컬
+  Vault로 직접 확인했다).
+- 로컬 dev-mode Vault(docker compose)는 컨테이너 안의 CLI로 넣는다. 위 명령 앞에
+  `docker exec -i -e VAULT_ADDR=http://127.0.0.1:8200 -e VAULT_TOKEN=dev-root-token expo-config-vault`를
+  붙이면 된다 (처음이면 `put`, 이미 있으면 `patch`).
 - 이 방식은 위 표의 모든 서비스(`secret/{식별자}`)에 똑같이 적용된다.
 
 ## 공용 파일(`application-{profile}.yml`) 주의

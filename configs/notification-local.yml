@@ -1,6 +1,7 @@
 # Vault secret/notification: sms.apiKey, sms.apiSecret, discord.participantNumberUrl, redis.password(쓰는 경우).
 # 채워 넣는 방법은 docs/service-configs.md 참고.
-port: 3000
+# 로컬에서는 config 서버 docker compose가 호스트 3000을 쓰고, 원격 값이 환경변수 PORT보다 우선하므로 3001로 둔다.
+port: 3001
 
 kafka:
   brokers: ["localhost:9092"]
@@ -17,8 +18,8 @@ redis:
   port: 6379
 
 sms:
-  fromStandardNumber: "<일반 참가자 발신번호>"
-  fromTraineeNumber: "<연수생 발신번호>"
+  # 발신번호(fromStandardNumber, fromTraineeNumber)는 일부러 뺐다. 원격 값이 환경변수보다 우선해서
+  # 여기에 두면 SMS_FROM_STANDARD_NUMBER / SMS_FROM_TRAINEE_NUMBER의 실제 번호를 덮어쓴다. 환경변수나 Vault로 준다.
   authCodeTtlSeconds: 180
   authMaxSendCount: 5
   authMaxSendCountPerHour: 300
