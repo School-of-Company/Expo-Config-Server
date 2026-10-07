@@ -1,0 +1,31 @@
+# Vault secret/notification: sms.apiKey, sms.apiSecret, discord.participantNumberUrl, redis.password(쓰는 경우).
+# 채워 넣는 방법은 docs/service-configs.md 참고.
+# 로컬에서는 config 서버 docker compose가 호스트 3000을 쓰고, 원격 값이 환경변수 PORT보다 우선하므로 3001로 둔다.
+port: 3001
+
+kafka:
+  brokers: ["localhost:9092"]
+  clientId: expo-notification-server
+  smsGroupId: expo-notification-server.sms
+  alarmGroupId: expo-notification-server.alarm
+  topics:
+    smsRequested: notification.sms.requested
+    smsDeadLetter: notification.sms.requested.dlq
+    expoApplicantCount: expo.applicant-count.updated
+
+redis:
+  host: "localhost"
+  port: 6379
+
+sms:
+  # 발신번호(fromStandardNumber, fromTraineeNumber)는 일부러 뺐다. 원격 값이 환경변수보다 우선해서
+  # 여기에 두면 SMS_FROM_STANDARD_NUMBER / SMS_FROM_TRAINEE_NUMBER의 실제 번호를 덮어쓴다. 환경변수나 Vault로 준다.
+  authCodeTtlSeconds: 180
+  authMaxSendCount: 5
+  authMaxSendCountPerHour: 300
+  authMaxVerifyAttemptCount: 5
+  eventMaxAttempts: 5
+
+eureka:
+  # 알림 서버의 Eureka 등록 키. 키 이름은 Expo-Notification-Server#4에서 확정되면 맞춘다.
+  serviceUrl: "http://localhost:8761/eureka"
