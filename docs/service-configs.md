@@ -95,9 +95,9 @@ vault kv patch -mount=secret notification - < secret.json
 
 - `sms`는 알림 서버(`notification`)로 통합되어 별도 파일이 없다. 참여(attendance) 서비스는
   Expo-Attention-Server 리포가 생겼지만 서비스 식별자가 정해지지 않아 설정 파일이 아직 없다.
-  `training`/`standard`/`image`는 Gateway 라우팅에는 있지만 `expo` 서비스 안에 있는지 별도 서비스인지
-  확인되지 않아 만들지 않았다. 확정되면 파일을 추가하고 `src/config/configs-files.spec.ts`의
-  `SERVICES`에도 넣는다.
+  `training`/`standard`/`image`는 Expo-Expo-Server 안에 구현되어 있어(`/training`, `/standard`,
+  `/image` 컨트롤러) Gateway 라우팅을 `expo-expo-server`로 보낸다. 별도 서비스가 아니므로 설정 파일도
+  따로 두지 않는다.
 - `notification`의 `eureka.serviceUrl` 키 이름은 Expo-Notification-Server#4(Eureka 등록 구현)에서
   확정되면 맞춘다. 알림 서버는 지금 이 키를 읽지 않는다 (모르는 키는 무시한다).
 - `form`은 Eureka 등록 여부를 확인하지 못해 eureka 키가 없다. Redis 비밀번호 사용 여부도 미확인이라

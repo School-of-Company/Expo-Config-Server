@@ -11,9 +11,9 @@ routing:
     /participant: expo-user-server
     /admin: expo-user-server
     /expo: expo-expo-server
-    /training: expo-training-server
-    /standard: expo-standard-server
-    /image: expo-image-server
+    /training: expo-expo-server
+    /standard: expo-expo-server
+    /image: expo-expo-server
     /forms: expo-form-server
     /surveys: expo-form-server
     /sms: expo-notification-server
