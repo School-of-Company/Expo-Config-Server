@@ -37,6 +37,19 @@ describe('configs/ files', () => {
     expect(fileNames).toContain(`${service}-${profile}.yml`);
   });
 
+  it('keeps internal tokens out of the public configs (they belong in Vault)', async () => {
+    // docs/internal-token.md 의 토큰 키 이름. 이 리포는 public 이라 yml 에 두면 공개된다.
+    const tokenKeys =
+      /^\s*(token|internal-token|delete-internal-token|[A-Z_]*INTERNAL_TOKEN)\s*:/m;
+    for (const fileName of fileNames) {
+      const content = await readFile(join(configsDir, fileName), 'utf-8');
+      expect({ fileName, hasTokenKey: tokenKeys.test(content) }).toEqual({
+        fileName,
+        hasTokenKey: false,
+      });
+    }
+  });
+
   it('parses every file to a YAML mapping', async () => {
     for (const fileName of fileNames) {
       const parsed: unknown = yaml.load(

@@ -14,7 +14,7 @@ PEM 형식, 로테이션 순서)을 지켜야 동작한다. 그런데 Config Ser
 
 | 항목 | 값 | 상태 |
 |---|---|---|
-| 서명(개인키) 서비스 식별자 | `auth` | **협의 필요** (아래 참고) |
+| 서명(개인키) 서비스 식별자 | `auth` | 유지 (`docs/internal-token.md` 참고) |
 | 개인키 위치 | Vault `secret/auth` → `{"jwt": {"privateKey": "<PEM>"}}` | 제안 |
 | 공개키 위치 | Vault `secret/gateway` → `{"jwt": {"publicKey": "<PEM>"}}` | Gateway 쪽 기존 규약 |
 | 알고리즘 / 형식 | RS256, 개인키 PKCS#8 PEM, 공개키 SPKI PEM | 제안 |
@@ -60,7 +60,7 @@ yml과 같은 중첩 구조로 넣는다 (예: `{"db": {"password": "..."}}`). �
 
 ## 아직 정해지지 않은 것
 
-- **서비스 식별자 `auth` vs `user`**: 유저 서비스는 `auth/admin/trainee/participant`를 한 프로세스로 묶은
+- **서비스 식별자 `auth` vs `user`**: `auth` 유지로 정했다 (`docs/internal-token.md` 참고). 유저 서비스는 `auth/admin/trainee/participant`를 한 프로세스로 묶은
   `expo-user-server`다. 지금은 기존 샘플(`configs/auth-local.yml`)과 이슈 제안에 맞춰 `auth`로 두었고,
   `user`로 정하면 `AUTH_SERVICE=user`로 스크립트를 돌리고 샘플 파일 이름만 바꾸면 된다.
 - **Spring Cloud Config Client 호환**: Spring Cloud Config Client는 `GET /{name}/{profile}`에서
