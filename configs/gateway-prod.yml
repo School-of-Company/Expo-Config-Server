@@ -25,9 +25,16 @@ routing:
 rateLimit:
   ttlSeconds: 60
   limit: 100
+  # 공개 설문 제출(POST /surveys/answer/public/*)만 IP별로 제한한다. 설문 부스는 공용 IP를 쓰므로 너무 낮추지 않는다.
+  survey:
+    ttlSeconds: 60
+    limit: 30
 
 publicPaths:
   - /health
   - POST /auth
   - POST /auth/signin
   - PATCH /auth
+  # 후기 설문: 입장 QR 없이 누구나 로그인 없이 접근한다(Expo-Form-Server#94). 접두사 항목이라 하위 경로 전체가 열린다.
+  - /surveys/public
+  - /surveys/answer/public
