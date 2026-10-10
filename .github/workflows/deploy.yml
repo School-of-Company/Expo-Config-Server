@@ -1,10 +1,10 @@
 name: Deploy
 
-# main -> prod, develop -> dev (glink.kr, team1/expo)
+# main 에 머지되면 배포한다 (glink.kr ~/expo, 개발/운영 구분 없는 단일 환경)
 # configs/ 를 릴리스에 같이 담는다. 설정을 바꾸면 이 서버를 재배포한 뒤 각 서비스를 재시작해야 반영된다.
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -13,12 +13,12 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.ref_name == 'main' || github.ref_name == 'develop'
+    if: github.ref_name == 'main'
     runs-on: ubuntu-latest
     env:
       SVC: config
-      DEPLOY_ENV: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
-      REMOTE_ROOT: /srv/users/festa/2026/dev/team1/expo
+      DEPLOY_ENV: prod # 서버는 단일 환경이라 무시한다 (deploy.sh 인자 호환용)
+      REMOTE_ROOT: /srv/users/projects/2026/team1/expo
     steps:
       - uses: actions/checkout@v4
 
@@ -63,5 +63,5 @@ jobs:
           USER: ${{ vars.EXPO_SSH_USER }}
         run: |
           REL="${GITHUB_SHA::12}-${GITHUB_RUN_ATTEMPT}"
-          scp -P "$PORT" release.tar.gz "$USER@$HOST:$REMOTE_ROOT/apps/$DEPLOY_ENV/$SVC/incoming/$REL.tar.gz"
+          scp -P "$PORT" release.tar.gz "$USER@$HOST:$REMOTE_ROOT/app/$SVC/incoming/$REL.tar.gz"
           ssh -p "$PORT" "$USER@$HOST" "$REMOTE_ROOT/bin/deploy.sh $SVC $DEPLOY_ENV $REL"
