@@ -131,6 +131,20 @@ spring:
   HTTP 클라이언트 timeout은 이 값보다 길어야 503을 받을 수 있다 (Spring Config Client의 기본 read timeout은
   185초).
 
+## Vault 응답 해석 (#56)
+
+| Vault 응답 | 결과 |
+|---|---|
+| 200 + `data.data` 객체 (빈 `{}` 포함) | 그 값을 병합 |
+| 404 (경로 없음, 최신 버전 soft delete·destroy, metadata 삭제) | 빈 시크릿으로 보고 계속 |
+| 200인데 `data.data` 객체가 없음 (`{}`, `{"data":{}}`, `data.data: null` 등), JSON 아님 | `503` |
+| 그 밖의 상태 코드, 연결 실패, 시간 초과 | `503` |
+
+삭제 상태의 계약은 Vault 1.20 dev 서버에서 확인했다: `kv delete`·`kv destroy` 후 읽기는 `404` +
+`{"data":{"data":null,"metadata":{"deletion_time":...,"destroyed":...}}}`, metadata까지 지우면 `404` +
+`{"errors":[]}`이다. 즉 "의도적으로 비운 시크릿"은 항상 404나 200 + `data.data: {}`로 오므로, 200인데 구조가
+깨진 응답은 프록시·잘못된 마운트(KV v1 등) 같은 이상으로 보고 native 값만 내려주지 않는다.
+
 ## 접근 제어 (중요)
 
 Config Server에는 **인증이 없다.** `/configs/...`와 `/spring/...` 모두 포트에 닿는 누구에게나 Vault 값까지 병합해

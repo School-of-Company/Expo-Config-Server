@@ -95,4 +95,46 @@ describe('Vault failures over HTTP (e2e)', () => {
       },
     );
   });
+  describe.each([
+    ['{}', {}],
+    ['{"unexpected":true}', { unexpected: true }],
+    ['{"data":{}}', { data: {} }],
+  ])('when Vault answers 200 with %s', (_name, body) => {
+    it.each(['/configs/auth/local', '/spring/auth/local'])(
+      'GET %s returns 503 instead of a native-only config',
+      async (path) => {
+        behavior = (res) => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(body));
+        };
+
+        const response = await request(app!.getHttpServer()).get(path);
+
+        expect(response.status).toBe(503);
+        expect(JSON.stringify(response.body)).not.toContain('3000');
+      },
+    );
+  });
+
+  it('keeps an empty data.data and a 404 path as a normal empty secret', async () => {
+    behavior = kv2({});
+    const empty = await request(app!.getHttpServer()).get(
+      '/configs/auth/local',
+    );
+    behavior = (res) => {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end('{"errors":[]}');
+    };
+    const missing = await request(app!.getHttpServer()).get(
+      '/spring/auth/local',
+    );
+
+    expect(empty.status).toBe(200);
+    expect(empty.body).toEqual({ port: 3000 });
+    expect(missing.status).toBe(200);
+    const { propertySources } = missing.body as {
+      propertySources: { source: unknown }[];
+    };
+    expect(propertySources[0].source).toEqual({ port: 3000 });
+  });
 });

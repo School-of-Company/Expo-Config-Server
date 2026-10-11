@@ -120,6 +120,67 @@ describe('VaultConfigProvider', () => {
     await expect(provider.load('auth')).rejects.toThrow(VaultUnavailableError);
   });
 
+  it.each([
+    ['{}', {}],
+    ['an unrelated object', { unexpected: true }],
+    ['data without data.data', { data: {} }],
+    ['data.data: null', { data: { data: null } }],
+    ['a JSON array', []],
+  ])(
+    'throws VaultUnavailableError for a 200 body with %s',
+    async (_name, body) => {
+      jest
+        .spyOn(global, 'fetch')
+        .mockImplementation(() =>
+          Promise.resolve(new Response(JSON.stringify(body), { status: 200 })),
+        );
+
+      const provider = providerWithVaultConfig();
+
+      await expect(provider.load('auth')).rejects.toThrow(
+        VaultUnavailableError,
+      );
+    },
+  );
+
+  it('accepts a normal 200 with an empty data.data as an empty secret', async () => {
+    jest.spyOn(global, 'fetch').mockImplementation(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ data: { data: {}, metadata: {} } }), {
+          status: 200,
+        }),
+      ),
+    );
+
+    const provider = providerWithVaultConfig();
+
+    await expect(provider.load('auth')).resolves.toEqual({});
+  });
+
+  it('treats a deleted latest version (404 with data.data: null) as empty', async () => {
+    // Vault 1.20 dev 서버에서 kv delete / destroy 후 실제로 받은 응답 형태
+    jest.spyOn(global, 'fetch').mockImplementation(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            data: {
+              data: null,
+              metadata: {
+                deletion_time: '2026-10-11T23:22:02Z',
+                destroyed: false,
+              },
+            },
+          }),
+          { status: 404 },
+        ),
+      ),
+    );
+
+    const provider = providerWithVaultConfig();
+
+    await expect(provider.load('auth')).resolves.toEqual({});
+  });
+
   describe('timeouts against a loopback Vault stub', () => {
     let server: Server;
     let vaultAddr: string;

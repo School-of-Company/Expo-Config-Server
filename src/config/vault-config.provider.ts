@@ -75,15 +75,14 @@ export class VaultConfigProvider {
       );
     }
 
+    // KV v2 의 200 은 항상 data.data 객체를 담는다 (빈 시크릿은 {}). 삭제·파기된 버전은 200 이 아니라
+    // 404 로 오므로 위에서 빈 설정이 된다. 그 밖의 200 은 비밀 값을 잃은 채 기동시키지 않도록 실패로 본다.
     const data = isPlainObject(body) ? body.data : undefined;
     const secretData = isPlainObject(data) ? data.data : undefined;
 
-    if (secretData === undefined) {
-      return {};
-    }
     if (!isPlainObject(secretData)) {
       throw new VaultUnavailableError(
-        'Vault returned a secret payload that was not a JSON object',
+        'Vault returned a 200 response without a KV v2 data.data object',
       );
     }
     return secretData;
