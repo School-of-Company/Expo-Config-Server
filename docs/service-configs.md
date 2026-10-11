@@ -158,7 +158,43 @@ Config Server에는 **인증이 없다.** `/configs/...`와 `/spring/...` 모두
 - `gateway-*.yml`의 `routing`은 `gateway-local.yml`을 그대로 복사했다. 유저 서비스 prefix 4개(`/auth`,
   `/admin`, `/trainee`, `/participant`)는 Expo-User-Server가 하나의 `expo-user-server`로 등록되므로 모두
   `expo-user-server`로 보낸다 (#6 참고).
+  SMS는 세 프로필 모두 `POST /sms`, `POST /sms/verify`, `GET /sms`만 공개하며 `/sms` 접두사 전체를
+  공개하지 않는다. `/sms`는 `expo-notification-server`로 라우팅한다 (#26).
+  `rateLimit.sms`는 IP별 세 SMS 경로 합산 60초에 10건이고, 기본 500건/60초와 설문 제출
+  300건/60초 제한도 함께 유지한다. Gateway는 `/sms` 및 `/sms/*` 요청을 SMS 예산에 포함하므로
+  인증에서 거부되는 SMS 요청도 예산을 소비한다. Gateway의 기본 메모리 저장소는 인스턴스별이며
+  재시작하면 초기화된다. 여러 인스턴스의 합산 제한이나 알림 서버의 번호별/전체 시간당 제한을
+  대체하지 않는다.
 - `application-{local,dev,prod}.yml`의 `port: 3000`은 초기 placeholder인데 전 서비스에 병합된다 (Spring
   서비스에서는 쓰이지 않는 키). 정리가 필요하다.
 - Report 서비스의 `application.yaml`은 `spring.security.user.password: ${LOCAL_SECURITY_PASSWORD}`를
   기본값 없이 요구한다. 운영 설정 방식을 Report 쪽에서 정해야 한다.
+
+### SMS 프록시 검증 (#26)
+
+Gateway develop `590427fbb4b8226b88b3dd2903e3d126ab096ab9`에서 선택적 `rateLimit.sms`,
+메서드/정확한 경로 공개 매칭, IP별 SMS 합산 카운팅을 확인했다. Gateway 변경은 필요 없다.
+Config Server와 Gateway에서 각각 `npm ci`와 `npm run build` 후 실행한다:
+
+```bash
+node scripts/verify-gateway-sms.mjs /path/to/Expo-Gateway
+```
+
+검증은 실제 `dist/main.js` 프로세스를 부팅하고 Config Server의 실제 프로필 파일을 HTTP로
+공급한다. Vault KV 응답은 테스트용 공개키와 loopback Eureka 주소만 병합한다. Eureka와
+upstream은 로컬 HTTP stub이며 실제 알림 서버, SMS 업체, 운영 Vault에는 연결하지 않는다.
+
+local/dev/prod 각각의 관측 결과:
+
+| 시나리오 | 결과 |
+|---|---|
+| `GET /configs/gateway/{profile}` 및 기존 제한/라우팅 보존 | 200, 기본 500 / 설문 300 / SMS 10 |
+| 미허용 메서드 5종, `GET /sms/verify`, 미허용 하위/유사 경로 3종 | 9건 모두 401, upstream 호출 0건 |
+| 동일 IP로 세 공개 SMS API를 교대로 호출 | 1~10번째 200, 메서드/URL/본문 그대로 upstream 도달 |
+| 동일 IP의 11번째 SMS 요청 | 429, `Retry-After-sms` 양수, upstream 호출은 10건 유지 |
+| 다른 IP의 SMS 검증(후행 슬래시 포함), 제한된 IP의 auth/설문 제출 | 각각 200 |
+
+실제 dev/prod 인프라, 유료 SMS 발송, 알림 서버 Vault/부팅(#17), 다중 Gateway의 통합 예산은
+검증 범위 밖이다. Gateway 기존 SMS e2e는 최초 실행에서 성공 시나리오가 401로 실패했으나,
+동일 develop의 단독 및 전체 재실행에서는 통과했다. 원인은 확인하지 못했으며 위 실제 부팅
+검증은 세 프로필 모두 통과했다.

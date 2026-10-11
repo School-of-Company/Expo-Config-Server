@@ -29,6 +29,34 @@ describe('configs/ files', () => {
     expect(fileNames).toContain(`application-${profile}.yml`);
   });
 
+  it.each(['local', 'dev', 'prod'])(
+    'restricts public SMS access and preserves existing budgets in gateway-%s',
+    async (profile) => {
+      const config: unknown = yaml.load(
+        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+      );
+      if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
+        throw new Error('Expected Gateway config with publicPaths');
+      }
+
+      expect(
+        config.publicPaths.filter(
+          (entry: unknown) =>
+            typeof entry === 'string' && entry.includes('/sms'),
+        ),
+      ).toEqual(['POST /sms', 'POST /sms/verify', 'GET /sms']);
+      expect(config.routing).toMatchObject({
+        prefixes: { '/sms': 'expo-notification-server' },
+      });
+      expect(config.rateLimit).toEqual({
+        ttlSeconds: 60,
+        limit: 500,
+        survey: { ttlSeconds: 60, limit: 300 },
+        sms: { ttlSeconds: 60, limit: 10 },
+      });
+    },
+  );
+
   it.each(
     SERVICES.flatMap((service) =>
       PROFILES.map((profile): [string, string] => [service, profile]),
