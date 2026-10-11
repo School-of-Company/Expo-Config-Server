@@ -167,7 +167,7 @@ Config Server에는 **인증이 없다.** `/configs/...`와 `/spring/...` 모두
   대체하지 않는다.
 - `gateway-dev.yml`만 통합 API 문서(`docs`, Expo-Gateway#30)를 켠다. `GET /docs`와 참여 서비스의 OpenAPI
   (`GET /attendance/v3/api-docs`)를 `publicPaths`에 열고, `docs.services`에는 `/{접두사}/v3/api-docs`
-  규칙을 따르는 서비스만 넣는다(지금은 참여뿐). 서비스를 추가할 때 `publicPaths`와 `docs.services`를
+  규칙을 따르는 서비스만 넣는다(지금은 참여·폼·유저). 유저 문서(`GET /auth/v3/api-docs`)는 유저 서비스가 `SWAGGER_ENABLED=true`로 켜져 있어야 열린다. 서비스를 추가할 때 `publicPaths`와 `docs.services`를
   함께 고친다. 메서드를 지정한 항목은 정확히 그 경로만 열린다. `gateway-local.yml`과 `gateway-prod.yml`에는
   넣지 않아 운영에는 노출되지 않는다.
 - `application-{local,dev,prod}.yml`의 `port: 3000`은 초기 placeholder인데 전 서비스에 병합된다 (Spring

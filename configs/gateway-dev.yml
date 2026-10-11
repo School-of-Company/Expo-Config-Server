@@ -53,6 +53,7 @@ publicPaths:
   - GET /docs
   - GET /attendance/v3/api-docs
   - GET /forms/v3/api-docs
+  - GET /auth/v3/api-docs
   - GET /attendance/swagger-ui
 
 # 통합 API 문서(GET /docs). dev에서만 켠다(prod 설정에는 넣지 않는다).
@@ -65,3 +66,5 @@ docs:
       url: /attendance/v3/api-docs
     - name: 폼
       url: /forms/v3/api-docs
+    - name: 유저
+      url: /auth/v3/api-docs
