@@ -1,1 +1,6 @@
 port: 3000
+
+# 서비스 공통 메트릭 규약(docs/metrics-convention.md). 서비스 포트와 분리된 내부 전용 포트다.
+metrics:
+  enabled: true
+  port: 9464
