@@ -73,6 +73,42 @@ describe('configs/ files', () => {
     },
   );
 
+  it('opens exactly the OpenAPI JSON of every service listed in the dev docs screen', async () => {
+    const config: unknown = yaml.load(
+      await readFile(join(configsDir, 'gateway-dev.yml'), 'utf-8'),
+    );
+    if (
+      !isPlainObject(config) ||
+      !isPlainObject(config.docs) ||
+      !Array.isArray(config.docs.services) ||
+      !Array.isArray(config.publicPaths)
+    ) {
+      throw new Error('Expected Gateway dev config with docs.services');
+    }
+
+    const urls = (config.docs.services as Array<{ url: string }>).map(
+      (service) => service.url,
+    );
+
+    expect(urls).toEqual(
+      expect.arrayContaining(['/attendance/v3/api-docs', '/forms/v3/api-docs']),
+    );
+    for (const url of urls) {
+      expect(config.publicPaths).toContain(`GET ${url}`);
+    }
+  });
+
+  it('keeps the API docs screen out of the prod gateway config', async () => {
+    const config: unknown = yaml.load(
+      await readFile(join(configsDir, 'gateway-prod.yml'), 'utf-8'),
+    );
+    if (!isPlainObject(config)) {
+      throw new Error('Expected a YAML mapping');
+    }
+
+    expect(config.docs).toBeUndefined();
+  });
+
   it.each(
     SERVICES.flatMap((service) =>
       PROFILES.map((profile): [string, string] => [service, profile]),

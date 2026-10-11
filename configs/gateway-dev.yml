@@ -52,6 +52,7 @@ publicPaths:
   # 통합 API 문서 화면(Expo-Gateway#30). 화면 자체와 참여 서비스의 OpenAPI JSON만 연다. GET으로 한정한 항목은 정확히 그 경로만 열린다.
   - GET /docs
   - GET /attendance/v3/api-docs
+  - GET /forms/v3/api-docs
   - GET /attendance/swagger-ui
 
 # 통합 API 문서(GET /docs). dev에서만 켠다(prod 설정에는 넣지 않는다).
@@ -62,3 +63,5 @@ docs:
   services:
     - name: 참여
       url: /attendance/v3/api-docs
+    - name: 폼
+      url: /forms/v3/api-docs
