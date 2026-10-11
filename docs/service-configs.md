@@ -8,7 +8,7 @@
 
 | 식별자 | 서비스 리포 | yml에 있는 키 | Vault에 넣을 값 |
 |---|---|---|---|
-| `gateway` | Expo-Gateway (NestJS) | `port`, `eureka.serviceUrl`, `routing`, `rateLimit`, `publicPaths` | `secret/gateway` → `jwt.publicKey` |
+| `gateway` | Expo-Gateway (NestJS) | `port`, `eureka.serviceUrl`, `routing`, `rateLimit`, `publicPaths`, `docs`(dev만) | `secret/gateway` → `jwt.publicKey` |
 | `auth` | Expo-User-Server (Spring) | `spring.datasource.url/username`, `spring.data.redis`, `eureka.client` | `secret/auth` → `spring.datasource.password`, `jwt.privateKey`, 내부 토큰(`internal.token`, `clients.expo.internal-token`) |
 | `expo` | Expo-Expo-Server (Spring) | 위와 같음 (DB `expo`) | `secret/expo` → `spring.datasource.password`, `JWT_PUBLIC_KEY`, 내부 토큰(`EXPO_INTERNAL_TOKEN`, `expo.*.internal-token`) |
 | `apply` | Expo-Application-Server (Spring) | 위와 같음 (DB `expo_application`) | `secret/apply` → `spring.datasource.password`, 내부 토큰(`application.internal-token`) |
@@ -165,6 +165,11 @@ Config Server에는 **인증이 없다.** `/configs/...`와 `/spring/...` 모두
   인증에서 거부되는 SMS 요청도 예산을 소비한다. Gateway의 기본 메모리 저장소는 인스턴스별이며
   재시작하면 초기화된다. 여러 인스턴스의 합산 제한이나 알림 서버의 번호별/전체 시간당 제한을
   대체하지 않는다.
+- `gateway-dev.yml`만 통합 API 문서(`docs`, Expo-Gateway#30)를 켠다. `GET /docs`와 참여 서비스의 OpenAPI
+  (`GET /attendance/v3/api-docs`)를 `publicPaths`에 열고, `docs.services`에는 `/{접두사}/v3/api-docs`
+  규칙을 따르는 서비스만 넣는다(지금은 참여뿐). 서비스를 추가할 때 `publicPaths`와 `docs.services`를
+  함께 고친다. 메서드를 지정한 항목은 정확히 그 경로만 열린다. `gateway-local.yml`과 `gateway-prod.yml`에는
+  넣지 않아 운영에는 노출되지 않는다.
 - `application-{local,dev,prod}.yml`의 `port: 3000`은 초기 placeholder인데 전 서비스에 병합된다 (Spring
   서비스에서는 쓰이지 않는 키). 정리가 필요하다.
 - Report 서비스의 `application.yaml`은 `spring.security.user.password: ${LOCAL_SECURITY_PASSWORD}`를
