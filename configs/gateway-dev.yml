@@ -47,3 +47,16 @@ publicPaths:
   - /surveys/answer/public
   # 프로그램용 폼 조회: 신청 화면이 로그인 없이 폼 정의를 읽는다(Expo-Form-Server#102). GET으로 한정해 PATCH·DELETE는 열지 않는다.
   - GET /forms/by-id
+  # 통합 API 문서 화면(Expo-Gateway#30). 화면 자체와 참여 서비스의 OpenAPI JSON만 연다. GET으로 한정한 항목은 정확히 그 경로만 열린다.
+  - GET /docs
+  - GET /attendance/v3/api-docs
+  - GET /attendance/swagger-ui
+
+# 통합 API 문서(GET /docs). dev에서만 켠다(prod 설정에는 넣지 않는다).
+# 다른 서비스는 각자 /{접두사}/v3/api-docs 로 문서를 내놓을 때 이 목록과 publicPaths에 하나씩 추가한다.
+docs:
+  enabled: true
+  title: Expo API 문서
+  services:
+    - name: 참여
+      url: /attendance/v3/api-docs
