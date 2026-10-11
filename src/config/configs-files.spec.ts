@@ -91,7 +91,11 @@ describe('configs/ files', () => {
     );
 
     expect(urls).toEqual(
-      expect.arrayContaining(['/attendance/v3/api-docs', '/forms/v3/api-docs']),
+      expect.arrayContaining([
+        '/attendance/v3/api-docs',
+        '/forms/v3/api-docs',
+        '/auth/v3/api-docs',
+      ]),
     );
     for (const url of urls) {
       expect(config.publicPaths).toContain(`GET ${url}`);
