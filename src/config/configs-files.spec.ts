@@ -57,6 +57,22 @@ describe('configs/ files', () => {
     },
   );
 
+  it.each(['local', 'dev', 'prod'])(
+    'shares the metrics convention in application-%s',
+    async (profile) => {
+      const config: unknown = yaml.load(
+        await readFile(join(configsDir, `application-${profile}.yml`), 'utf-8'),
+      );
+      if (!isPlainObject(config)) {
+        throw new Error('Expected a YAML mapping');
+      }
+
+      // 서비스 포트(port)와 분리돼 있어야 한다. docs/metrics-convention.md
+      expect(config.metrics).toEqual({ enabled: true, port: 9464 });
+      expect(config.port).not.toBe(9464);
+    },
+  );
+
   it.each(
     SERVICES.flatMap((service) =>
       PROFILES.map((profile): [string, string] => [service, profile]),
