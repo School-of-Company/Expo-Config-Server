@@ -19,6 +19,8 @@ routing:
     /sms: expo-notification-server
     /application: expo-application-server
     /attendance: expo-attention-server
+    # 종이 QR 발급(POST /qr-tokens/{expoId}, 관리자)은 /attendance 아래가 아니라 별도 접두사로 참여 서비스에 보낸다
+    /qr-tokens: expo-attention-server
     /excel: expo-report-server
     /stat: expo-report-server
 
