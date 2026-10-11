@@ -1,0 +1,2 @@
+# Vault secret/form: database.url (접속 계정 포함 전체 URL). 채워 넣는 방법은 docs/service-configs.md 참고.
+port: 3000

@@ -10,11 +10,13 @@ Drafts a PR title and body (both in Korean) based on the actual diff, filling in
 `.github/PULL_REQUEST_TEMPLATE.md`. Does not run `gh pr create` automatically — only when the
 user explicitly requests it.
 
+PRs target `develop` (the integration branch), not `main`.
+
 ## Workflow
 
-1. `git log main..HEAD --oneline` — list commits
-2. `git diff main...HEAD --stat` — changed file stats
-3. `git diff main...HEAD` — full diff
+1. `git log develop..HEAD --oneline` — list commits
+2. `git diff develop...HEAD --stat` — changed file stats
+3. `git diff develop...HEAD` — full diff
 4. Fill in `.github/PULL_REQUEST_TEMPLATE.md`'s sections (배경 및 개요 / 작업내용 / 리뷰노트 / 체크리스트 / 기타) in Korean, then print the draft
 
 ## Rules
@@ -32,5 +34,5 @@ Only run when the user explicitly says to create the PR:
 gh pr create --title "<한글 제목>" --body "$(cat <<'EOF'
 <filled-in template, in Korean>
 EOF
-)"
+)" --base develop
 ```

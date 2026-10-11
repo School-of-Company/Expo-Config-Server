@@ -1,0 +1,12 @@
+# Vault secret/report: spring.datasource.password. 채워 넣는 방법은 docs/service-configs.md 참고.
+# 로컬 전용인 spring.security.user.* 와 server.address 는 일부러 넣지 않았다.
+spring:
+  datasource:
+    url: "jdbc:postgresql://<DB_HOST>:5432/expo_report"
+    username: expo
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: "http://<EUREKA_HOST>:8761/eureka"

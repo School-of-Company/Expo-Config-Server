@@ -1,0 +1,15 @@
+# Vault secret/expo: spring.datasource.password. 채워 넣는 방법은 docs/service-configs.md 참고.
+spring:
+  datasource:
+    url: "jdbc:postgresql://<DB_HOST>:5432/expo"
+    username: expo
+  data:
+    redis:
+      host: "<REDIS_HOST>"
+      port: 6379
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: "http://<EUREKA_HOST>:8761/eureka"

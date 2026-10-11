@@ -8,6 +8,7 @@
 - Hardcoding Vault tokens, DB passwords, or any credential in code
 - Committing real secret values into `configs/*.yml` — that tree is for non-secret settings only, Vault owns secrets
 - Reading files under a `secrets/` directory if one is ever introduced
+- Putting a private/signing key in `secret/application` — that path is merged into every service's response. Private keys live only under their owning service's path (see `docs/jwt-signing-key.md`)
 
 ## Environment Variable Management
 

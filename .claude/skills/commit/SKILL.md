@@ -13,7 +13,7 @@ Do not auto-commit after completing work.
    - `.env`, `.env.*`
    - `.claude/.logs/`
    - anything containing `VAULT_TOKEN` or a raw secret value
-4. If on `main`: stop, use the `new-branch` skill first, then return here.
+4. If on `main` or `develop`: stop, use the `new-branch` skill first, then return here.
 5. Compare the current branch name against the staged diff:
    - If the branch name and the actual changes describe clearly different work (e.g., branch is `feat/vault-provider` but the diff is an unrelated hotfix), stop and use the `new-branch` skill to create an appropriate branch first.
    - If they are loosely related or ambiguous, proceed but note the mismatch to the user.
@@ -66,7 +66,7 @@ git log --oneline -3
 ## Push Protocol
 
 Push only when the user explicitly requests it. Never combine push with commit.
-Never push to `main`.
+Never push to `main` or `develop`.
 
 ```bash
 git push origin <branch-name>
