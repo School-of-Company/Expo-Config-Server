@@ -45,3 +45,5 @@ publicPaths:
   # 후기 설문: 입장 QR 없이 누구나 로그인 없이 접근한다(Expo-Form-Server#94). 접두사 항목이라 하위 경로 전체가 열린다.
   - /surveys/public
   - /surveys/answer/public
+  # 프로그램용 폼 조회: 신청 화면이 로그인 없이 폼 정의를 읽는다(Expo-Form-Server#102). GET으로 한정해 PATCH·DELETE는 열지 않는다.
+  - GET /forms/by-id
