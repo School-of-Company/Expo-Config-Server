@@ -1,4 +1,6 @@
 import { ConfigService } from '@nestjs/config';
+import { createServer, Server } from 'node:http';
+import { AddressInfo } from 'node:net';
 import {
   VaultConfigProvider,
   VaultUnavailableError,
@@ -116,5 +118,47 @@ describe('VaultConfigProvider', () => {
     const provider = providerWithVaultConfig();
 
     await expect(provider.load('auth')).rejects.toThrow(VaultUnavailableError);
+  });
+
+  describe('timeouts against a loopback Vault stub', () => {
+    let server: Server;
+    let vaultAddr: string;
+    let mode: 'no-headers' | 'stalled-body';
+
+    beforeAll(async () => {
+      server = createServer((_req, res) => {
+        if (mode === 'stalled-body') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.write('{"data":');
+        }
+        // 응답을 끝내지 않는다 — Vault 가 연결만 받고 멈춘 상황
+      });
+      await new Promise<void>((resolve) =>
+        server.listen(0, '127.0.0.1', resolve),
+      );
+      vaultAddr = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    });
+
+    afterAll(async () => {
+      server.closeAllConnections();
+      await new Promise((resolve) => server.close(resolve));
+    });
+
+    it.each(['no-headers', 'stalled-body'] as const)(
+      'fails with VaultUnavailableError within the limit when Vault hangs (%s)',
+      async (hangMode) => {
+        mode = hangMode;
+        const provider = providerWithVaultConfig({
+          VAULT_ADDR: vaultAddr,
+          VAULT_TIMEOUT_MS: 200,
+        });
+
+        const startedAt = Date.now();
+        await expect(provider.load('auth')).rejects.toThrow(
+          VaultUnavailableError,
+        );
+        expect(Date.now() - startedAt).toBeLessThan(2000);
+      },
+    );
   });
 });

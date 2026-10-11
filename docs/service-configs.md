@@ -118,6 +118,19 @@ spring:
       fail-fast: true     # Config Server 가 응답하지 않으면 기동 실패
 ```
 
+## Vault 조회 시간 제한 (#55)
+
+한 번의 설정 요청은 Vault를 두 번 읽는다(`secret/application`, `secret/{service}`). 두 조회 전체에 **하나의
+기한**을 두고, 연결·응답 헤더뿐 아니라 JSON 본문을 끝까지 받는 시간까지 포함한다. 기한을 넘기면 재시도 없이
+`503`(`Vault is currently unavailable`)을 돌려준다. 서버 로그에는 서비스·프로파일과 "timeout" 사유만 남고 응답
+본문은 남지 않는다.
+
+- 기본값 5000ms. 환경변수 `VAULT_TIMEOUT_MS`(양의 정수, ms)로 바꾼다. 잘못된 값이면 config 서버가 기동하지 않는다.
+- 소비 서비스 영향: Vault가 멈춰도 설정 요청은 약 5초 안에 `503`으로 끝난다. 서비스는 `fail-fast`로 기동에
+  실패하므로(재시작 정책이 있으면 재시도), 런타임 기본 제한(수 분)까지 부팅이 매달리지 않는다. 소비 서비스 쪽
+  HTTP 클라이언트 timeout은 이 값보다 길어야 503을 받을 수 있다 (Spring Config Client의 기본 read timeout은
+  185초).
+
 ## 접근 제어 (중요)
 
 Config Server에는 **인증이 없다.** `/configs/...`와 `/spring/...` 모두 포트에 닿는 누구에게나 Vault 값까지 병합해

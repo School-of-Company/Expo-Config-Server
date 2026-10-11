@@ -2,6 +2,7 @@ export interface AppEnv {
   CONFIG_DIR?: string;
   VAULT_ADDR: string;
   VAULT_TOKEN: string;
+  VAULT_TIMEOUT_MS?: number;
 }
 
 export function validateEnv(config: Record<string, unknown>): AppEnv {
@@ -16,6 +17,14 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
   }
 
   const configDir = config.CONFIG_DIR;
+  const timeout = config.VAULT_TIMEOUT_MS;
+  let vaultTimeoutMs: number | undefined;
+  if (timeout !== undefined && timeout !== '') {
+    vaultTimeoutMs = Number(timeout);
+    if (!Number.isInteger(vaultTimeoutMs) || vaultTimeoutMs <= 0) {
+      throw new Error('VAULT_TIMEOUT_MS must be a positive integer');
+    }
+  }
 
   return {
     CONFIG_DIR:
@@ -24,5 +33,6 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
         : undefined,
     VAULT_ADDR: vaultAddr,
     VAULT_TOKEN: vaultToken,
+    VAULT_TIMEOUT_MS: vaultTimeoutMs,
   };
 }

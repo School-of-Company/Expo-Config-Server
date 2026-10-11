@@ -10,17 +10,27 @@ export class VaultUnavailableError extends Error {
   }
 }
 
+const DEFAULT_TIMEOUT_MS = 5000;
+
 @Injectable()
 export class VaultConfigProvider {
   constructor(private readonly configService: ConfigService<AppEnv, true>) {}
 
   async load(service: string): Promise<ConfigRecord> {
-    const applicationSecrets = await this.readSecret('application');
-    const serviceSecrets = await this.readSecret(service);
+    // 두 경로 조회 전체(헤더 + 본문)에 하나의 기한을 둔다. 소비 서비스는 부팅 중 이 응답을 기다린다.
+    const signal = AbortSignal.timeout(
+      this.configService.get('VAULT_TIMEOUT_MS', { infer: true }) ??
+        DEFAULT_TIMEOUT_MS,
+    );
+    const applicationSecrets = await this.readSecret('application', signal);
+    const serviceSecrets = await this.readSecret(service, signal);
     return deepMerge(applicationSecrets, serviceSecrets);
   }
 
-  private async readSecret(path: string): Promise<ConfigRecord> {
+  private async readSecret(
+    path: string,
+    signal: AbortSignal,
+  ): Promise<ConfigRecord> {
     const vaultAddr = this.configService.get('VAULT_ADDR', { infer: true });
     const vaultToken = this.configService.get('VAULT_TOKEN', { infer: true });
 
@@ -36,6 +46,7 @@ export class VaultConfigProvider {
         `${vaultAddr}/v1/secret/data/${encodeURIComponent(path)}`,
         {
           headers: { 'X-Vault-Token': vaultToken },
+          signal,
         },
       );
     } catch (error) {
@@ -58,7 +69,9 @@ export class VaultConfigProvider {
       body = await response.json();
     } catch {
       throw new VaultUnavailableError(
-        'Vault returned a response that could not be parsed as JSON',
+        signal.aborted
+          ? 'Timed out reading the Vault response body'
+          : 'Vault returned a response that could not be parsed as JSON',
       );
     }
 
