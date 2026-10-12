@@ -27,6 +27,10 @@ metrics:
   (`{service}-{profile}.yml`)의 `metrics.port`에 둔다 (Vault `secret/{service}`의 같은 키도 동작하지만 yml보다
   우선해서 파일만 보고는 실제 값을 알 수 없다). 같은 키는 서비스별 값이 공통 값보다 우선한다
   (`test/metrics-port.e2e-spec.ts`가 `/configs`, `/spring` 응답으로 검증한다).
+  Vault `secret/application`에는 `metrics.port`를 두지 않는다. 공용 Vault 값은 모든 서비스의 yml override보다
+  우선해서 전 서비스를 다시 한 포트로 모은다.
+- Gateway는 config의 `metrics.port`가 아니라 자기 환경변수 `METRICS_PORT`로 listener를 연다(아래 표). Gateway
+  포트는 `gateway-{profile}.yml`이 아니라 Gateway의 `METRICS_PORT`로 바꾼다.
 - 포트 값은 배포 담당자가 서버에서 실제로 비어 있는 포트를 확인해 정한다. **이 저장소에는 아직 서비스별 할당이
   없다** — 확인되지 않은 값을 임의로 넣지 않는다. 할당이 정해지면 아래 표를 채우고 서비스별 파일에 반영한다.
 
@@ -51,7 +55,7 @@ metrics:
    | 키 | 값 | 의미 |
    |---|---|---|
    | `prometheus.scrape` | `"true"` | 이 인스턴스를 수집한다 |
-   | `prometheus.port` | `"9464"` (`metrics.port`) | 메트릭 포트 |
+   | `prometheus.port` | `${metrics.port}` (서비스별 값, 공통 기본 9464) | 메트릭 포트 — 실제 listener 포트와 같아야 한다 |
    | `prometheus.path` | `/metrics` 또는 `/actuator/prometheus` | 메트릭 경로 |
 
 2. **HTTP 지표 이름 통일**: `http_server_requests_seconds`(Histogram), 라벨은 `method`, `status`, `uri`.
