@@ -19,8 +19,33 @@ metrics:
 ```
 
 - `metrics.enabled: false`를 서비스별 파일(`{service}-{profile}.yml`)에 두면 그 서비스만 끈다.
-- 서비스 포트(`port`)와 달리 메트릭 포트는 모든 서비스가 같은 값(9464)을 쓴다. 한 호스트에 두 서비스를 함께
-  띄우는 로컬 환경에서는 충돌하므로, 그때만 서비스별 파일에서 바꾼다.
+- 공통 값 9464는 **한 호스트에 메트릭 listener가 하나뿐일 때만** 그대로 쓸 수 있다. local·dev·prod 어느
+  환경이든 같은 호스트(또는 같은 네트워크 네임스페이스)에서 두 서비스 이상이 메트릭 listener를 열면 두 번째
+  서비스가 포트 충돌로 기동하지 못하거나 메트릭이 수집되지 않는다. 지금 배포는 모든 서비스가 한 서버
+  (`deploy.yml`의 단일 환경)에 함께 뜨므로 **운영도 해당된다.**
+- 그래서 메트릭을 켜는 서비스마다 서로 다른 포트를 서비스별로 준다. 비밀 값이 아니므로 서비스별 파일
+  (`{service}-{profile}.yml`)의 `metrics.port`에 둔다 (Vault `secret/{service}`의 같은 키도 동작하지만 yml보다
+  우선해서 파일만 보고는 실제 값을 알 수 없다). 같은 키는 서비스별 값이 공통 값보다 우선한다
+  (`test/metrics-port.e2e-spec.ts`가 `/configs`, `/spring` 응답으로 검증한다).
+  Vault `secret/application`에는 `metrics.port`를 두지 않는다. 공용 Vault 값은 모든 서비스의 yml override보다
+  우선해서 전 서비스를 다시 한 포트로 모은다.
+- Gateway는 config의 `metrics.port`가 아니라 자기 환경변수 `METRICS_PORT`로 listener를 연다(아래 표). Gateway
+  포트는 `gateway-{profile}.yml`이 아니라 Gateway의 `METRICS_PORT`로 바꾼다.
+- 포트 값은 배포 담당자가 서버에서 실제로 비어 있는 포트를 확인해 정한다. **이 저장소에는 아직 서비스별 할당이
+  없다** — 확인되지 않은 값을 임의로 넣지 않는다. 할당이 정해지면 아래 표를 채우고 서비스별 파일에 반영한다.
+
+  | 서비스 | 메트릭 listener | 현재 포트 출처 | 할당 |
+  |---|---|---|---|
+  | `gateway` | 있음 (Gateway `src/metrics/`) | Gateway 환경변수 `METRICS_PORT`(기본 9464). config의 `metrics.port`는 읽지 않는다 | 미정 |
+  | `auth`, `expo`, `apply`, `report` (Spring) | 없음 (`/actuator/prometheus`가 서비스 포트에 있음, `management.server.port` 미설정) | - | 적용 시 정함 |
+  | `form`, `notification` | 없음 | - | 적용 시 정함 |
+
+  (각 서비스 리포 develop 기준 확인, 2026-10-12. 운영 서버의 실제 바인딩·`.env` 값은 확인하지 못했다.)
+- Eureka metadata의 `prometheus.port`는 **실제 listener가 연 포트**와 같아야 한다. Prometheus는 이 값으로
+  `<인스턴스 IP>:<prometheus.port>`를 수집하므로, override한 `metrics.port`와 metadata가 어긋나면 서비스는
+  떠도 수집이 실패한다. Spring은 아래 예시처럼 둘 다 `${metrics.port}`로 묶고, Gateway처럼 환경변수로 포트를
+  받는 서비스는 그 환경변수와 metadata가 같은 값을 쓰는지 확인한다. 실제 listener 기동과 Prometheus 수집 확인은
+  각 서비스와 `Expo-Monitoring` 담당 범위다.
 
 ## 규약
 
@@ -30,7 +55,7 @@ metrics:
    | 키 | 값 | 의미 |
    |---|---|---|
    | `prometheus.scrape` | `"true"` | 이 인스턴스를 수집한다 |
-   | `prometheus.port` | `"9464"` (`metrics.port`) | 메트릭 포트 |
+   | `prometheus.port` | `${metrics.port}` (서비스별 값, 공통 기본 9464) | 메트릭 포트 — 실제 listener 포트와 같아야 한다 |
    | `prometheus.path` | `/metrics` 또는 `/actuator/prometheus` | 메트릭 경로 |
 
 2. **HTTP 지표 이름 통일**: `http_server_requests_seconds`(Histogram), 라벨은 `method`, `status`, `uri`.
