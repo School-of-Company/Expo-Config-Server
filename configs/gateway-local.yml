@@ -55,6 +55,8 @@ publicPaths:
   - /surveys/answer/public
   # 프로그램용 폼 조회: 신청 화면이 로그인 없이 폼 정의를 읽는다(Expo-Form-Server#102). GET으로 한정해 PATCH·DELETE는 열지 않는다.
   - GET /forms/by-id
+  # 이미지 조회: 커버 이미지는 <img>로 불러 토큰을 보낼 수 없다. 박람회 서버도 GET /image/{id}를 permitAll로 연다. Gateway#35 이후 문법이고 업로드 POST /image는 계속 JWT 검사를 거친다.
+  - GET /image/{id}
   # 참가자 전화 인증(Expo-Gateway#25). PARTICIPANT_SESSION 쿠키로 동작해 JWT 검사를 하지 않는다.
   - POST /participant-auth/code
   - POST /participant-auth/verify

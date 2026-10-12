@@ -126,6 +126,28 @@ describe('configs/ files', () => {
     },
   );
 
+  it.each(['local', 'dev', 'prod'])(
+    'opens only image reads, not uploads, in gateway-%s',
+    async (profile) => {
+      const config: unknown = yaml.load(
+        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+      );
+      if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
+        throw new Error('Expected Gateway config with publicPaths');
+      }
+
+      const imageEntries = config.publicPaths.filter(
+        (entry: unknown) =>
+          typeof entry === 'string' && entry.includes('/image'),
+      );
+      // 조회만 열고 업로드(POST /image)는 Gateway JWT 검사를 거치게 한다
+      expect(imageEntries).toEqual(['GET /image/{id}']);
+      expect(config.routing).toMatchObject({
+        prefixes: { '/image': 'expo-expo-server' },
+      });
+    },
+  );
+
   it('opens exactly the OpenAPI JSON of every service listed in the dev docs screen', async () => {
     const config: unknown = yaml.load(
       await readFile(join(configsDir, 'gateway-dev.yml'), 'utf-8'),
