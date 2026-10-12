@@ -79,3 +79,28 @@ publicPaths:
   - GET /application/expos/{expoId}/participants/{participantId}/qr
   - GET /application/expos/{expoId}/my-applications
   - POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation
+
+# 통합 API 문서(GET /docs, Expo-Gateway#50). 운영은 문서 전용 Basic 인증이 있을 때만 연다.
+# docs.basicAuth(username, password)는 Vault secret/gateway에서 병합된다. 이 파일에 넣지 않는다.
+# requireAuth: true라 Vault 값이 없으면 Gateway가 부팅하지 않는다(문서가 인증 없이 열리지 않게). 문서 JSON은 publicPaths에 열지 않는다.
+# Try it out은 운영 데이터를 바꾸지 못하게 끈다. 각 서비스 서버에 SWAGGER_ENABLED=true가 있어야 JSON이 나온다.
+docs:
+  enabled: true
+  requireAuth: true
+  tryItOut: false
+  title: Expo API 문서
+  services:
+    - name: 참여
+      url: /attendance/v3/api-docs
+    - name: 폼
+      url: /forms/v3/api-docs
+    - name: 유저
+      url: /auth/v3/api-docs
+    - name: 박람회
+      url: /expo/v3/api-docs
+    - name: 신청
+      url: /application/v3/api-docs
+    - name: 알림
+      url: /sms/v3/api-docs
+    - name: 리포트
+      url: /stat/v3/api-docs
