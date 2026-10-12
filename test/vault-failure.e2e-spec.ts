@@ -111,7 +111,9 @@ describe('Vault failures over HTTP (e2e)', () => {
         const response = await request(app!.getHttpServer()).get(path);
 
         expect(response.status).toBe(503);
-        expect(JSON.stringify(response.body)).not.toContain('3000');
+        expect(response.body).toMatchObject({
+          message: 'Vault is currently unavailable',
+        });
       },
     );
   });

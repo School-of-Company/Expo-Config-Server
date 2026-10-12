@@ -181,6 +181,22 @@ describe('VaultConfigProvider', () => {
     await expect(provider.load('auth')).resolves.toEqual({});
   });
 
+  it('falls back to the default timeout when ConfigService returns a raw empty string', async () => {
+    // VAULT_TIMEOUT_MS='' 는 검증에서 미설정으로 빠지고, ConfigService 는 그때 process.env 원문을 돌려준다.
+    jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ data: { data: {} } }), { status: 200 }),
+        ),
+      );
+    const provider = providerWithVaultConfig({
+      VAULT_TIMEOUT_MS: '' as unknown as number,
+    });
+
+    await expect(provider.load('auth')).resolves.toEqual({});
+  });
+
   describe('timeouts against a loopback Vault stub', () => {
     let server: Server;
     let vaultAddr: string;

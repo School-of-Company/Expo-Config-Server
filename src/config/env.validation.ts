@@ -5,6 +5,8 @@ export interface AppEnv {
   VAULT_TIMEOUT_MS?: number;
 }
 
+const MAX_TIMER_MS = 2_147_483_647;
+
 export function validateEnv(config: Record<string, unknown>): AppEnv {
   const vaultAddr = config.VAULT_ADDR;
   const vaultToken = config.VAULT_TOKEN;
@@ -21,8 +23,15 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
   let vaultTimeoutMs: number | undefined;
   if (timeout !== undefined && timeout !== '') {
     vaultTimeoutMs = Number(timeout);
-    if (!Number.isInteger(vaultTimeoutMs) || vaultTimeoutMs <= 0) {
-      throw new Error('VAULT_TIMEOUT_MS must be a positive integer');
+    // 2^31-1 을 넘으면 Node 타이머가 1ms 로 바뀌거나 AbortSignal.timeout 이 예외를 던진다.
+    if (
+      !Number.isInteger(vaultTimeoutMs) ||
+      vaultTimeoutMs <= 0 ||
+      vaultTimeoutMs > MAX_TIMER_MS
+    ) {
+      throw new Error(
+        `VAULT_TIMEOUT_MS must be an integer between 1 and ${MAX_TIMER_MS}`,
+      );
     }
   }
 

@@ -56,7 +56,7 @@ describe('validateEnv', () => {
     expect(result.VAULT_TIMEOUT_MS).toBe(1500);
   });
 
-  it.each(['0', '-1', '1.5', 'abc'])(
+  it.each(['0', '-1', '1.5', 'abc', '2147483648', '10000000000'])(
     'throws when VAULT_TIMEOUT_MS is %p',
     (value) => {
       expect(() =>
@@ -68,4 +68,14 @@ describe('validateEnv', () => {
       ).toThrow('VAULT_TIMEOUT_MS');
     },
   );
+
+  it('treats an empty VAULT_TIMEOUT_MS as unset', () => {
+    expect(
+      validateEnv({
+        VAULT_ADDR: 'http://vault.local',
+        VAULT_TOKEN: 'token',
+        VAULT_TIMEOUT_MS: '',
+      }).VAULT_TIMEOUT_MS,
+    ).toBeUndefined();
+  });
 });

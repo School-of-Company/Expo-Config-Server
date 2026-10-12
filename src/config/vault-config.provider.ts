@@ -18,9 +18,12 @@ export class VaultConfigProvider {
 
   async load(service: string): Promise<ConfigRecord> {
     // 두 경로 조회 전체(헤더 + 본문)에 하나의 기한을 둔다. 소비 서비스는 부팅 중 이 응답을 기다린다.
+    // 검증 스냅샷에 값이 없으면 ConfigService 가 process.env 원문(예: '')을 돌려주므로 숫자일 때만 쓴다.
+    const timeoutMs: unknown = this.configService.get('VAULT_TIMEOUT_MS', {
+      infer: true,
+    });
     const signal = AbortSignal.timeout(
-      this.configService.get('VAULT_TIMEOUT_MS', { infer: true }) ??
-        DEFAULT_TIMEOUT_MS,
+      typeof timeoutMs === 'number' ? timeoutMs : DEFAULT_TIMEOUT_MS,
     );
     const applicationSecrets = await this.readSecret('application', signal);
     const serviceSecrets = await this.readSecret(service, signal);
@@ -71,7 +74,7 @@ export class VaultConfigProvider {
       throw new VaultUnavailableError(
         signal.aborted
           ? 'Timed out reading the Vault response body'
-          : 'Vault returned a response that could not be parsed as JSON',
+          : 'Vault returned a response that could not be read or parsed as JSON',
       );
     }
 
