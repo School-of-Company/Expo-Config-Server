@@ -1,10 +1,9 @@
 import { HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ConfigMergeService } from './config-merge.service';
 import { ConfigRecord } from './deep-merge';
+import { SAFE_SEGMENT } from './env.validation';
 import { ProfileNotFoundError } from './native-config.provider';
 import { VaultUnavailableError } from './vault-config.provider';
-
-const SAFE_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
 /**
  * `/configs/...` 와 `/spring/...` 가 같은 검증·오류 규칙을 쓰도록 모아 둔다.

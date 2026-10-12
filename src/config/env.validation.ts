@@ -6,7 +6,8 @@ export interface AppEnv {
   CONFIG_CLIENT_CREDENTIALS?: Record<string, string>;
 }
 
-const SERVICE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
+/** 서비스 식별자·프로파일 형식. 파일 경로와 Vault 경로에 그대로 들어가므로 경로 탐색을 막는 화이트리스트다. */
+export const SAFE_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
 function parseClientCredentials(
   raw: unknown,
@@ -26,7 +27,7 @@ function parseClientCredentials(
     Object.keys(parsed).length === 0 ||
     !Object.entries(parsed).every(
       ([service, password]) =>
-        SERVICE_ID.test(service) &&
+        SAFE_SEGMENT.test(service) &&
         typeof password === 'string' &&
         password.length > 0,
     )

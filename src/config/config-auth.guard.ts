@@ -25,9 +25,20 @@ export class ConfigAuthGuard implements CanActivate {
   private readonly credentials: Record<string, string> | undefined;
 
   constructor(configService: ConfigService<AppEnv, true>) {
-    this.credentials = configService.get('CONFIG_CLIENT_CREDENTIALS', {
-      infer: true,
-    });
+    const credentials: unknown = configService.get(
+      'CONFIG_CLIENT_CREDENTIALS',
+      { infer: true },
+    );
+    // 검증을 거치지 않은 값(예: 검증 스냅샷 이후 process.env 에 들어온 원문 문자열)으로 인증을 끄거나 오동작하지 않게 한다.
+    if (
+      credentials !== undefined &&
+      (typeof credentials !== 'object' ||
+        credentials === null ||
+        Array.isArray(credentials))
+    ) {
+      throw new Error('CONFIG_CLIENT_CREDENTIALS was not validated');
+    }
+    this.credentials = credentials as Record<string, string> | undefined;
     if (!this.credentials) {
       this.logger.warn(
         'CONFIG_CLIENT_CREDENTIALS is not set: config API authentication is disabled',
