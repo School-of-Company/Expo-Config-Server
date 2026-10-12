@@ -12,6 +12,7 @@ describe('validateEnv', () => {
       VAULT_ADDR: 'http://vault.local',
       VAULT_TOKEN: 'token',
       CONFIG_DIR: '/tmp/configs',
+      CONFIG_CLIENT_CREDENTIALS: undefined,
     });
   });
 
@@ -25,6 +26,7 @@ describe('validateEnv', () => {
       VAULT_ADDR: 'http://vault.local',
       VAULT_TOKEN: 'token',
       CONFIG_DIR: undefined,
+      CONFIG_CLIENT_CREDENTIALS: undefined,
     });
   });
 
@@ -42,5 +44,35 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ VAULT_ADDR: '', VAULT_TOKEN: 'token' })).toThrow(
       'VAULT_ADDR',
     );
+  });
+
+  it('parses CONFIG_CLIENT_CREDENTIALS as a service → password map', () => {
+    const result = validateEnv({
+      VAULT_ADDR: 'http://vault.local',
+      VAULT_TOKEN: 'token',
+      CONFIG_CLIENT_CREDENTIALS: '{"gateway":"pw-1","notification":"pw-2"}',
+    });
+
+    expect(result.CONFIG_CLIENT_CREDENTIALS).toEqual({
+      gateway: 'pw-1',
+      notification: 'pw-2',
+    });
+  });
+
+  it.each([
+    'not json pw-secret',
+    '{}',
+    '[]',
+    '{"gateway":""}',
+    '{"gateway":1}',
+    '{"../auth":"pw"}',
+  ])('rejects CONFIG_CLIENT_CREDENTIALS %p without echoing it', (value) => {
+    expect(() =>
+      validateEnv({
+        VAULT_ADDR: 'http://vault.local',
+        VAULT_TOKEN: 'token',
+        CONFIG_CLIENT_CREDENTIALS: value,
+      }),
+    ).toThrow(/^CONFIG_CLIENT_CREDENTIALS must be/);
   });
 });

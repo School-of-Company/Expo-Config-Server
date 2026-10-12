@@ -2,6 +2,40 @@ export interface AppEnv {
   CONFIG_DIR?: string;
   VAULT_ADDR: string;
   VAULT_TOKEN: string;
+  /** 서비스 식별자 → Basic 인증 비밀번호. 없으면 설정 API 인증을 끈다 (#54, docs/config-access-auth.md) */
+  CONFIG_CLIENT_CREDENTIALS?: Record<string, string>;
+}
+
+const SERVICE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
+
+function parseClientCredentials(
+  raw: unknown,
+): Record<string, string> | undefined {
+  if (raw === undefined || raw === '') return undefined;
+  // 값(비밀번호)이 오류 메시지에 섞이지 않도록 파싱 오류 원문은 버린다.
+  let parsed: unknown;
+  try {
+    parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  } catch {
+    parsed = undefined;
+  }
+  if (
+    typeof parsed !== 'object' ||
+    parsed === null ||
+    Array.isArray(parsed) ||
+    Object.keys(parsed).length === 0 ||
+    !Object.entries(parsed).every(
+      ([service, password]) =>
+        SERVICE_ID.test(service) &&
+        typeof password === 'string' &&
+        password.length > 0,
+    )
+  ) {
+    throw new Error(
+      'CONFIG_CLIENT_CREDENTIALS must be a non-empty JSON object of {"<service>": "<password>"}',
+    );
+  }
+  return parsed as Record<string, string>;
 }
 
 export function validateEnv(config: Record<string, unknown>): AppEnv {
@@ -24,5 +58,8 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
         : undefined,
     VAULT_ADDR: vaultAddr,
     VAULT_TOKEN: vaultToken,
+    CONFIG_CLIENT_CREDENTIALS: parseClientCredentials(
+      config.CONFIG_CLIENT_CREDENTIALS,
+    ),
   };
 }

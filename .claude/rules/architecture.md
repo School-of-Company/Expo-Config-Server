@@ -9,6 +9,7 @@ config/
 ├── vault-config.provider.ts    — HTTP I/O. Queries Vault KV v2.
 ├── config-merge.service.ts     — Combines providers, applies deep-merge.
 ├── config.controller.ts        — Entry point. Param validation and error→HTTP mapping only.
+├── config-auth.guard.ts        — Basic auth + caller == requested service check (#54).
 └── config.module.ts            — Wiring only.
 ```
 

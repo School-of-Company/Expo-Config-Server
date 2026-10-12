@@ -4,9 +4,15 @@ import { ConfigMergeService } from './config-merge.service';
 import { NativeConfigProvider } from './native-config.provider';
 import { VaultConfigProvider } from './vault-config.provider';
 import { SpringConfigController } from './spring-config.controller';
+import { ConfigAuthGuard } from './config-auth.guard';
 
 @Module({
   controllers: [ConfigController, SpringConfigController],
-  providers: [ConfigMergeService, NativeConfigProvider, VaultConfigProvider],
+  providers: [
+    ConfigMergeService,
+    NativeConfigProvider,
+    VaultConfigProvider,
+    ConfigAuthGuard,
+  ],
 })
 export class ConfigModule {}
