@@ -151,6 +151,32 @@ describe('configs/ files', () => {
     },
   );
 
+  it.each(['local', 'dev', 'prod'])(
+    'opens only the training program list read under /training and /standard in gateway-%s',
+    async (profile) => {
+      const config: unknown = yaml.load(
+        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+      );
+      if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
+        throw new Error('Expected Gateway config with publicPaths');
+      }
+
+      const programEntries = config.publicPaths.filter(
+        (entry: unknown) =>
+          typeof entry === 'string' &&
+          /^(\S+ )?\/(training|standard)(\/|$)/.test(entry),
+      );
+      // 참가자 연수 신청이 토큰 없이 읽는 조회만 연다. 쓰기와 일반 프로그램 목록은 JWT 검사를 거친다
+      expect(programEntries).toEqual(['GET /training/program/{expoId}']);
+      expect(config.routing).toMatchObject({
+        prefixes: {
+          '/training': 'expo-expo-server',
+          '/standard': 'expo-expo-server',
+        },
+      });
+    },
+  );
+
   it('opens exactly the OpenAPI JSON of every service listed in the dev docs screen', async () => {
     const config: unknown = yaml.load(
       await readFile(join(configsDir, 'gateway-dev.yml'), 'utf-8'),

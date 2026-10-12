@@ -211,6 +211,9 @@ spring:
   비교해 해당 경로가 401로 남는다. `rateLimit.participantAuthCode`(IP별 600초에 5건)도 #35부터 읽는다. 이전
   Gateway는 이 키를 무시해 `POST /participant-auth/code`에 기본 제한만 걸리므로, 이 설정은 Gateway #35가
   운영(main)에 배포된 뒤에 main으로 내보낸다.
+  같은 문법을 쓰는 `GET /image/{id}`(#64)와 `GET /training/program/{expoId}`(#69)도 같은 조건이다. 연수 프로그램
+  목록은 Expo-Client 참가자 연수 사전신청 제출이 토큰 없이 읽는다. `GET /standard/program/{expoId}`는 참가자 화면이
+  호출하지 않아(Expo-Client는 관리자 토큰으로만 호출, Expo-Web은 Gateway를 부르지 않음) 열지 않는다.
   `cors`는 넣지 않았다. 현재 브라우저가 Gateway를 직접 부르는 프론트가 없다. Expo-Client는 Next BFF가 서버에서
   호출해 `Origin`이 없고, Expo-Web은 Gateway를 부르지 않는다. 확정된 프론트 origin도 없다. `cors`를 넣으면
   목록 밖 `Origin`의 쓰기가 403이 되므로, 브라우저 직접 호출을 도입할 때 정확한 origin 목록과 함께 넣는다(dev
