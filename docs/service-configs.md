@@ -147,16 +147,18 @@ spring:
 
 ## 접근 제어 (중요)
 
-Config Server에는 **인증이 없다.** `/configs/...`와 `/spring/...` 모두 포트에 닿는 누구에게나 Vault 값까지 병합해
-내려준다. 지금은 네트워크 수준 제한(방화벽, 바인딩 주소)에만 의존한다.
+`/configs/...`와 `/spring/...`는 HTTP Basic 인증을 지원한다 (#54, 자세한 내용은 `docs/config-access-auth.md`).
+사용자 이름은 서비스 식별자, 비밀번호는 서비스마다 따로 두고, 인증된 서비스는 자기 식별자의 설정만 받는다.
+**인증은 config 서버에 `CONFIG_CLIENT_CREDENTIALS`를 넣어야 켜진다.** 켜기 전에는 포트에 닿는 누구에게나 Vault
+값까지 병합해 내려준다.
 
 - 외부 방화벽이 막아도, **같은 서버의 다른 계정**은 `127.0.0.1:<port>`로 닿는다. 여러 사람이 쓰는 서버라면
   그 사람들이 개인키·DB 비밀번호를 읽을 수 있다. (glink.kr 서버에서 실제로 확인했고, 그래서 그 서버는 JWT 개인키를
   Vault에 두지 않고 환경변수로만 유저 서비스에 넣는다.)
-- 따라서 **인증을 붙이기 전까지는**, 접근을 막을 수 없는 환경에서 `secret/{service}`에 민감한 값(개인키, DB 비밀번호,
+- 따라서 **인증을 켜기 전까지는**, 접근을 막을 수 없는 환경에서 `secret/{service}`에 민감한 값(개인키, DB 비밀번호,
   내부 토큰)을 넣지 않는다. 그런 환경에서는 해당 서비스에 환경변수로 직접 넣는다.
-- 인증을 붙인다면 Spring Cloud Config Client가 기본 지원하는 Basic 인증(`spring.cloud.config.username/password`)이
-  가장 적게 바꾸는 방법이다. Gateway·Form도 `/configs` 호출에 같은 헤더를 보내야 한다 (후속 작업).
+- 인증을 켜도 막지 못하는 것(config 서버 자신의 환경, 평문 전송, `secret/application`)은
+  `docs/config-access-auth.md`의 마지막 절에 있다.
 
 ## 공용 파일(`application-{profile}.yml`) 주의
 

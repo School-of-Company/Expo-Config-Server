@@ -29,6 +29,14 @@ const vaultToken = process.env.VAULT_TOKEN;
 - A value that fails the whitelist regex returns 400 and is blocked at the controller level before
   it ever reaches a provider.
 
+## Config API Authentication (#54)
+
+- `ConfigAuthGuard` guards `/configs` and `/spring`: HTTP Basic, username = service identifier,
+  per-service password from `CONFIG_CLIENT_CREDENTIALS`; a caller only gets its own service (403
+  otherwise). Unset = disabled (staged rollout, see `docs/config-access-auth.md`).
+- Never log the `Authorization` header or any password, and never put client passwords in
+  `configs/*.yml`, Vault `secret/application`, or code.
+
 ## Vault Response Handling
 
 - Never forward a malformed Vault 200 response body to the client as-is — a parse failure maps to

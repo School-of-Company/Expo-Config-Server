@@ -1,8 +1,10 @@
-import { Controller, Get, Logger, Param } from '@nestjs/common';
+import { Controller, Get, Logger, Param, UseGuards } from '@nestjs/common';
+import { ConfigAuthGuard } from './config-auth.guard';
 import { ConfigMergeService } from './config-merge.service';
 import { loadMergedConfig } from './config-request';
 
 @Controller('configs')
+@UseGuards(ConfigAuthGuard)
 export class ConfigController {
   private readonly logger = new Logger(ConfigController.name);
 
