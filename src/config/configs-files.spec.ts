@@ -215,31 +215,46 @@ describe('configs/ files', () => {
     ).toEqual(urls.map((url) => `GET ${url}`));
   });
 
-  it('opens only the user and attendance service Swagger in the prod gateway config', async () => {
-    const config: unknown = yaml.load(
-      await readFile(join(configsDir, 'gateway-prod.yml'), 'utf-8'),
-    );
-    if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
-      throw new Error('Expected Gateway config with publicPaths');
+  it('serves the prod integrated docs only behind a docs-only Basic auth that comes from Vault', async () => {
+    const load = async (profile: string): Promise<Record<string, unknown>> => {
+      const config: unknown = yaml.load(
+        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+      );
+      if (!isPlainObject(config)) {
+        throw new Error('Expected a YAML mapping');
+      }
+      return config;
+    };
+    const prod = await load('prod');
+    const dev = await load('dev');
+    if (
+      !isPlainObject(prod.docs) ||
+      !isPlainObject(dev.docs) ||
+      !Array.isArray(prod.docs.services) ||
+      !Array.isArray(prod.publicPaths)
+    ) {
+      throw new Error('Expected docs.services and publicPaths in gateway-prod');
     }
 
-    // 통합 문서 화면은 운영에 없고, 열려 있는 문서는 유저·참여 서비스의 Swagger 화면과 JSON뿐이다
-    expect(config.docs).toBeUndefined();
-    expect(config.publicPaths).not.toContain('GET /docs');
+    // 운영은 인증 없이 부팅하지 않게 하고(requireAuth), Try it out을 끈다
+    expect(prod.docs.enabled).toBe(true);
+    expect(prod.docs.requireAuth).toBe(true);
+    expect(prod.docs.tryItOut).toBe(false);
+    // 자격 증명은 Vault에서 병합되므로 yml에 없어야 한다
+    expect(prod.docs.basicAuth).toBeUndefined();
+    expect(JSON.stringify(prod)).not.toMatch(/password|username/i);
+    // 보는 서비스는 dev 통합 문서와 같다
+    expect(prod.docs.services).toEqual(dev.docs.services);
+    // 문서 JSON과 화면은 publicPaths로 열지 않는다(Basic 인증으로만 열린다)
     expect(
-      config.publicPaths.filter(
+      prod.publicPaths.filter(
         (entry: unknown) =>
           typeof entry === 'string' &&
-          (entry.includes('swagger') || entry.includes('api-docs')),
+          (entry.includes('api-docs') ||
+            entry.includes('swagger') ||
+            entry.includes('/docs')),
       ),
-    ).toEqual([
-      'GET /auth/swagger-ui.html',
-      '/auth/swagger-ui',
-      '/auth/v3/api-docs',
-      'GET /attendance/swagger-ui.html',
-      '/attendance/swagger-ui',
-      '/attendance/v3/api-docs',
-    ]);
+    ).toEqual([]);
   });
 
   it.each(['local'])('keeps API docs out of gateway-%s', async (profile) => {
