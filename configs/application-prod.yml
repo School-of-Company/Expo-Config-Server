@@ -1,6 +1,8 @@
 port: 3000
 
 # 서비스 공통 메트릭 규약(docs/metrics-convention.md). 서비스 포트와 분리된 내부 전용 포트다.
+# 한 호스트에서 여러 서비스가 메트릭을 켜면 충돌하므로 {service}-{profile}.yml 에서 서비스마다 다른 포트로 바꾼다
+# (Gateway는 METRICS_PORT 환경변수를 쓴다 — docs/metrics-convention.md 표 참고).
 metrics:
   enabled: true
   port: 9464

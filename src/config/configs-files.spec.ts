@@ -42,7 +42,9 @@ describe('configs/ files', () => {
       expect(
         config.publicPaths.filter(
           (entry: unknown) =>
-            typeof entry === 'string' && entry.includes('/sms'),
+            typeof entry === 'string' &&
+            /^(?:[A-Z]+ )?\/sms(?:\/|$)/.test(entry) &&
+            entry !== 'GET /sms/v3/api-docs',
         ),
       ).toEqual(['POST /sms', 'POST /sms/verify', 'GET /sms']);
       expect(config.routing).toMatchObject({
@@ -53,7 +55,61 @@ describe('configs/ files', () => {
         limit: 500,
         survey: { ttlSeconds: 60, limit: 300 },
         sms: { ttlSeconds: 60, limit: 10 },
+        participantAuthCode: { ttlSeconds: 600, limit: 5 },
       });
+    },
+  );
+
+  it.each(['local', 'dev', 'prod'])(
+    'routes participant auth and opens exactly the participant APIs in gateway-%s',
+    async (profile) => {
+      const config: unknown = yaml.load(
+        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+      );
+      if (
+        !isPlainObject(config) ||
+        !isPlainObject(config.routing) ||
+        !isPlainObject(config.routing.prefixes) ||
+        !Array.isArray(config.publicPaths)
+      ) {
+        throw new Error('Expected Gateway config with routing and publicPaths');
+      }
+      // 메서드 없는 접두사 항목도 걸러 비교한다. 접두사 항목은 하위 경로 전체를 연다.
+
+      expect(config.routing.prefixes['/participant-auth']).toBe(
+        'expo-user-server',
+      );
+      expect(
+        Object.keys(config.routing.prefixes).filter((prefix) =>
+          prefix.includes('internal'),
+        ),
+      ).toEqual([]);
+      expect(
+        config.publicPaths.filter(
+          (entry: unknown) =>
+            typeof entry === 'string' &&
+            /^(?:[A-Z]+ )?\/(participant-auth|application)(\/|$)/.test(entry) &&
+            entry !== 'GET /application/v3/api-docs',
+        ),
+      ).toEqual([
+        'POST /participant-auth/code',
+        'POST /participant-auth/verify',
+        'GET /participant-auth/session',
+        'DELETE /participant-auth/session',
+        'POST /application/{expoId}',
+        'POST /application/pre-standard/{expoId}',
+        'POST /application/field/{expoId}',
+        'POST /application/field/standard/{expoId}',
+        'GET /application/expos/{expoId}/preregister-sessions/{sessionId}/capacity',
+        'GET /application/program-session-csrf',
+        'POST /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/applications',
+        'GET /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/participants',
+        'GET /application/expos/{expoId}/participants/{participantId}/qr',
+        'GET /application/expos/{expoId}/my-applications',
+        'POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation',
+      ]);
+      // 실제 프론트 origin 근거가 없어 넣지 않는다. 넣으면 목록 밖 Origin의 쓰기가 403이 된다.
+      expect(config.cors).toBeUndefined();
     },
   );
 
@@ -73,6 +129,54 @@ describe('configs/ files', () => {
     },
   );
 
+  it.each(['local', 'dev', 'prod'])(
+    'opens only image reads, not uploads, in gateway-%s',
+    async (profile) => {
+      const config: unknown = yaml.load(
+        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+      );
+      if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
+        throw new Error('Expected Gateway config with publicPaths');
+      }
+
+      const imageEntries = config.publicPaths.filter(
+        (entry: unknown) =>
+          typeof entry === 'string' && entry.includes('/image'),
+      );
+      // 조회만 열고 업로드(POST /image)는 Gateway JWT 검사를 거치게 한다
+      expect(imageEntries).toEqual(['GET /image/{id}']);
+      expect(config.routing).toMatchObject({
+        prefixes: { '/image': 'expo-expo-server' },
+      });
+    },
+  );
+
+  it.each(['local', 'dev', 'prod'])(
+    'opens only the training program list read under /training and /standard in gateway-%s',
+    async (profile) => {
+      const config: unknown = yaml.load(
+        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+      );
+      if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
+        throw new Error('Expected Gateway config with publicPaths');
+      }
+
+      const programEntries = config.publicPaths.filter(
+        (entry: unknown) =>
+          typeof entry === 'string' &&
+          /^(\S+ )?\/(training|standard)(\/|$)/.test(entry),
+      );
+      // 참가자 연수 신청이 토큰 없이 읽는 조회만 연다. 쓰기와 일반 프로그램 목록은 JWT 검사를 거친다
+      expect(programEntries).toEqual(['GET /training/program/{expoId}']);
+      expect(config.routing).toMatchObject({
+        prefixes: {
+          '/training': 'expo-expo-server',
+          '/standard': 'expo-expo-server',
+        },
+      });
+    },
+  );
+
   it('opens exactly the OpenAPI JSON of every service listed in the dev docs screen', async () => {
     const config: unknown = yaml.load(
       await readFile(join(configsDir, 'gateway-dev.yml'), 'utf-8'),
@@ -86,32 +190,51 @@ describe('configs/ files', () => {
       throw new Error('Expected Gateway dev config with docs.services');
     }
 
-    const urls = (config.docs.services as Array<{ url: string }>).map(
-      (service) => service.url,
-    );
+    const urls = config.docs.services.map((service: unknown) => {
+      if (!isPlainObject(service) || typeof service.url !== 'string') {
+        throw new Error('Expected docs service with a URL');
+      }
+      return service.url;
+    });
 
-    expect(urls).toEqual(
-      expect.arrayContaining([
-        '/attendance/v3/api-docs',
-        '/forms/v3/api-docs',
-        '/auth/v3/api-docs',
-      ]),
-    );
-    for (const url of urls) {
-      expect(config.publicPaths).toContain(`GET ${url}`);
-    }
+    expect(urls).toEqual([
+      '/attendance/v3/api-docs',
+      '/forms/v3/api-docs',
+      '/auth/v3/api-docs',
+      '/expo/v3/api-docs',
+      '/application/v3/api-docs',
+      '/sms/v3/api-docs',
+      '/stat/v3/api-docs',
+    ]);
+    expect(config.publicPaths).not.toContain('GET /attendance/swagger-ui');
+    expect(
+      config.publicPaths.filter(
+        (entry: unknown) =>
+          typeof entry === 'string' && entry.includes('/v3/api-docs'),
+      ),
+    ).toEqual(urls.map((url) => `GET ${url}`));
   });
 
-  it('keeps the API docs screen out of the prod gateway config', async () => {
-    const config: unknown = yaml.load(
-      await readFile(join(configsDir, 'gateway-prod.yml'), 'utf-8'),
-    );
-    if (!isPlainObject(config)) {
-      throw new Error('Expected a YAML mapping');
-    }
+  it.each(['local', 'prod'])(
+    'keeps API docs out of gateway-%s',
+    async (profile) => {
+      const config: unknown = yaml.load(
+        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+      );
+      if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
+        throw new Error('Expected Gateway config with publicPaths');
+      }
 
-    expect(config.docs).toBeUndefined();
-  });
+      expect(config.docs).toBeUndefined();
+      expect(
+        config.publicPaths.filter(
+          (entry: unknown) =>
+            typeof entry === 'string' &&
+            (entry.includes('/v3/api-docs') || entry === 'GET /docs'),
+        ),
+      ).toEqual([]);
+    },
+  );
 
   it.each(
     SERVICES.flatMap((service) =>

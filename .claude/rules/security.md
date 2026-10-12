@@ -29,12 +29,22 @@ const vaultToken = process.env.VAULT_TOKEN;
 - A value that fails the whitelist regex returns 400 and is blocked at the controller level before
   it ever reaches a provider.
 
+## Config API Authentication (#54)
+
+- `ConfigAuthGuard` guards `/configs` and `/spring`: HTTP Basic, username = service identifier,
+  per-service password from `CONFIG_CLIENT_CREDENTIALS`; a caller only gets its own service (403
+  otherwise). Unset = disabled (staged rollout, see `docs/config-access-auth.md`).
+- Never log the `Authorization` header or any password, and never put client passwords in
+  `configs/*.yml`, Vault `secret/application`, or code.
+
 ## Vault Response Handling
 
 - Never forward a malformed Vault 200 response body to the client as-is — a parse failure maps to
   `VaultUnavailableError` and responds 503.
 - A 404 from a specific Vault path means "no secret at that path" and is not an error — treat it as
   an empty object.
+- A 200 must carry a KV v2 `data.data` object (an empty `{}` is fine). A 200 without it maps to
+  `VaultUnavailableError` (503) — deleted/destroyed versions come back as 404, never as a bare 200.
 
 ## Error Messages to Clients
 

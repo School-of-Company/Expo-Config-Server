@@ -1,4 +1,5 @@
-import { Controller, Get, Logger, Param } from '@nestjs/common';
+import { Controller, Get, Logger, Param, UseGuards } from '@nestjs/common';
+import { ConfigAuthGuard } from './config-auth.guard';
 import { ConfigMergeService } from './config-merge.service';
 import { loadMergedConfig } from './config-request';
 import { FlatConfig, flattenConfig } from './flatten-config';
@@ -22,6 +23,7 @@ export interface SpringEnvironment {
  * 바꾸지 않으려고 경로를 나눴다. label 은 지원하지 않고 무시한다.
  */
 @Controller('spring')
+@UseGuards(ConfigAuthGuard)
 export class SpringConfigController {
   private readonly logger = new Logger(SpringConfigController.name);
 
