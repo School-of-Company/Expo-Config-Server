@@ -202,9 +202,10 @@ spring:
   CORS를 추가하는 경우에는 쓰기 Try it out을 위해 dev Gateway 자신의 정확한 origin도 허용해야 한다.
   현재 BFF 호출 계약에 따라 CORS는 추가하지 않는다. 서비스를 추가할 때 `publicPaths`와 `docs.services`를
   함께 고친다. 메서드를 지정한 항목은 정확히 그 경로만 열린다. `gateway-local.yml`에는 넣지 않는다.
-  `gateway-prod.yml`에는 통합 문서 화면(`docs`, `GET /docs`)을 넣지 않고, 유저 서비스의 Swagger 화면과 JSON만
-  JWT 없이 연다(`GET /auth/swagger-ui.html`, 접두사 `/auth/swagger-ui`, `/auth/v3/api-docs`. 유저 서버에
-  `SWAGGER_ENABLED=true`가 있어야 나오고 `/internal` API는 `SWAGGER_INCLUDE_INTERNAL`이 꺼져 있으면 문서에서 빠진다).
+  `gateway-prod.yml`에는 통합 문서 화면(`docs`, `GET /docs`)을 넣지 않고, 유저·참여 서비스의 Swagger 화면과 JSON만
+  JWT 없이 연다(`GET /{접두사}/swagger-ui.html`, 접두사 `/{접두사}/swagger-ui`, `/{접두사}/v3/api-docs`, 접두사는 `/auth`와
+  `/attendance`). 각 서버에 `SWAGGER_ENABLED=true`가 있어야 나오고, 유저 서버의 `/internal` API는
+  `SWAGGER_INCLUDE_INTERNAL`이 꺼져 있으면 문서에서 빠진다.
 - 참가자 전화 인증·신청 참가자 경로(#53, Expo-Gateway#25/#29/#35). 세 프로필 모두 `/participant-auth`를
   `expo-user-server`로 라우팅한다(`/participant`는 세그먼트 경계로 매칭해 `/participant-auth`를 잡지 않는다).
   `/internal`은 라우팅하지 않는다. 공개 경로는 메서드를 지정한 15개 항목만 연다. User 4개와 Application 11개이며,

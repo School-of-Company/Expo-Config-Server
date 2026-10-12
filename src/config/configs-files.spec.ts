@@ -215,7 +215,7 @@ describe('configs/ files', () => {
     ).toEqual(urls.map((url) => `GET ${url}`));
   });
 
-  it('opens only the user service Swagger in the prod gateway config', async () => {
+  it('opens only the user and attendance service Swagger in the prod gateway config', async () => {
     const config: unknown = yaml.load(
       await readFile(join(configsDir, 'gateway-prod.yml'), 'utf-8'),
     );
@@ -223,7 +223,7 @@ describe('configs/ files', () => {
       throw new Error('Expected Gateway config with publicPaths');
     }
 
-    // 통합 문서 화면은 운영에 없고, 열려 있는 문서는 유저 서비스의 Swagger 화면과 JSON뿐이다
+    // 통합 문서 화면은 운영에 없고, 열려 있는 문서는 유저·참여 서비스의 Swagger 화면과 JSON뿐이다
     expect(config.docs).toBeUndefined();
     expect(config.publicPaths).not.toContain('GET /docs');
     expect(
@@ -236,6 +236,9 @@ describe('configs/ files', () => {
       'GET /auth/swagger-ui.html',
       '/auth/swagger-ui',
       '/auth/v3/api-docs',
+      'GET /attendance/swagger-ui.html',
+      '/attendance/swagger-ui',
+      '/attendance/v3/api-docs',
     ]);
   });
 
