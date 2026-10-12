@@ -215,26 +215,47 @@ describe('configs/ files', () => {
     ).toEqual(urls.map((url) => `GET ${url}`));
   });
 
-  it.each(['local', 'prod'])(
-    'keeps API docs out of gateway-%s',
-    async (profile) => {
-      const config: unknown = yaml.load(
-        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
-      );
-      if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
-        throw new Error('Expected Gateway config with publicPaths');
-      }
+  it('opens only the user service Swagger in the prod gateway config', async () => {
+    const config: unknown = yaml.load(
+      await readFile(join(configsDir, 'gateway-prod.yml'), 'utf-8'),
+    );
+    if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
+      throw new Error('Expected Gateway config with publicPaths');
+    }
 
-      expect(config.docs).toBeUndefined();
-      expect(
-        config.publicPaths.filter(
-          (entry: unknown) =>
-            typeof entry === 'string' &&
-            (entry.includes('/v3/api-docs') || entry === 'GET /docs'),
-        ),
-      ).toEqual([]);
-    },
-  );
+    // 통합 문서 화면은 운영에 없고, 열려 있는 문서는 유저 서비스의 Swagger 화면과 JSON뿐이다
+    expect(config.docs).toBeUndefined();
+    expect(config.publicPaths).not.toContain('GET /docs');
+    expect(
+      config.publicPaths.filter(
+        (entry: unknown) =>
+          typeof entry === 'string' &&
+          (entry.includes('swagger') || entry.includes('api-docs')),
+      ),
+    ).toEqual([
+      'GET /auth/swagger-ui.html',
+      '/auth/swagger-ui',
+      '/auth/v3/api-docs',
+    ]);
+  });
+
+  it.each(['local'])('keeps API docs out of gateway-%s', async (profile) => {
+    const config: unknown = yaml.load(
+      await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+    );
+    if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
+      throw new Error('Expected Gateway config with publicPaths');
+    }
+
+    expect(config.docs).toBeUndefined();
+    expect(
+      config.publicPaths.filter(
+        (entry: unknown) =>
+          typeof entry === 'string' &&
+          (entry.includes('/v3/api-docs') || entry === 'GET /docs'),
+      ),
+    ).toEqual([]);
+  });
 
   it.each(
     SERVICES.flatMap((service) =>
