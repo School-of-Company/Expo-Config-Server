@@ -9,6 +9,9 @@ routing:
     /auth: expo-user-server
     /trainee: expo-user-server
     /participant: expo-user-server
+    # 참가자 전화 인증(Expo-Gateway#25). /participant 는 세그먼트 경계로 매칭해 /participant-auth 를 잡지 않으므로 따로 둔다.
+    # /internal 은 라우팅하지 않는다(Gateway가 internal 세그먼트를 404로 막는다).
+    /participant-auth: expo-user-server
     /admin: expo-user-server
     /expo: expo-expo-server
     /training: expo-expo-server
@@ -35,6 +38,10 @@ rateLimit:
   sms:
     ttlSeconds: 60
     limit: 10
+  # 인증번호 요청(POST /participant-auth/code)만 IP별로 제한한다(유료 SMS). 번호별 제한은 User/Notification 서버 몫이다.
+  participantAuthCode:
+    ttlSeconds: 600
+    limit: 5
 
 publicPaths:
   - /health
@@ -49,3 +56,21 @@ publicPaths:
   - /surveys/answer/public
   # 프로그램용 폼 조회: 신청 화면이 로그인 없이 폼 정의를 읽는다(Expo-Form-Server#102). GET으로 한정해 PATCH·DELETE는 열지 않는다.
   - GET /forms/by-id
+  # 참가자 전화 인증(Expo-Gateway#25). PARTICIPANT_SESSION 쿠키로 동작해 JWT 검사를 하지 않는다.
+  - POST /participant-auth/code
+  - POST /participant-auth/verify
+  - GET /participant-auth/session
+  - DELETE /participant-auth/session
+  # 신청 참가자 공개 경로(Expo-Gateway#29, Expo-Application-Server#75). Gateway#35 이후 문법:
+  # {name}은 숫자 또는 UUID 한 세그먼트, {name:A|B}는 나열 값 중 하나에만 매칭한다. 이전 Gateway는 문자 그대로 비교해 열리지 않는다.
+  - POST /application/{expoId}
+  - POST /application/pre-standard/{expoId}
+  - POST /application/field/{expoId}
+  - POST /application/field/standard/{expoId}
+  - GET /application/expos/{expoId}/preregister-sessions/{sessionId}/capacity
+  - GET /application/program-session-csrf
+  - POST /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/applications
+  - GET /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/participants
+  - GET /application/expos/{expoId}/participants/{participantId}/qr
+  - GET /application/expos/{expoId}/my-applications
+  - POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation

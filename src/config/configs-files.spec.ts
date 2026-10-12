@@ -53,7 +53,60 @@ describe('configs/ files', () => {
         limit: 500,
         survey: { ttlSeconds: 60, limit: 300 },
         sms: { ttlSeconds: 60, limit: 10 },
+        participantAuthCode: { ttlSeconds: 600, limit: 5 },
       });
+    },
+  );
+
+  it.each(['local', 'dev', 'prod'])(
+    'routes participant auth and opens exactly the participant APIs in gateway-%s',
+    async (profile) => {
+      const config: unknown = yaml.load(
+        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+      );
+      if (
+        !isPlainObject(config) ||
+        !isPlainObject(config.routing) ||
+        !isPlainObject(config.routing.prefixes) ||
+        !Array.isArray(config.publicPaths)
+      ) {
+        throw new Error('Expected Gateway config with routing and publicPaths');
+      }
+      // 메서드 없는 접두사 항목도 걸러 비교한다. 접두사 항목은 하위 경로 전체를 연다.
+
+      expect(config.routing.prefixes['/participant-auth']).toBe(
+        'expo-user-server',
+      );
+      expect(
+        Object.keys(config.routing.prefixes).filter((prefix) =>
+          prefix.includes('internal'),
+        ),
+      ).toEqual([]);
+      expect(
+        config.publicPaths.filter(
+          (entry: unknown) =>
+            typeof entry === 'string' &&
+            /^(?:[A-Z]+ )?\/(participant-auth|application)(\/|$)/.test(entry),
+        ),
+      ).toEqual([
+        'POST /participant-auth/code',
+        'POST /participant-auth/verify',
+        'GET /participant-auth/session',
+        'DELETE /participant-auth/session',
+        'POST /application/{expoId}',
+        'POST /application/pre-standard/{expoId}',
+        'POST /application/field/{expoId}',
+        'POST /application/field/standard/{expoId}',
+        'GET /application/expos/{expoId}/preregister-sessions/{sessionId}/capacity',
+        'GET /application/program-session-csrf',
+        'POST /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/applications',
+        'GET /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/participants',
+        'GET /application/expos/{expoId}/participants/{participantId}/qr',
+        'GET /application/expos/{expoId}/my-applications',
+        'POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation',
+      ]);
+      // 실제 프론트 origin 근거가 없어 넣지 않는다. 넣으면 목록 밖 Origin의 쓰기가 403이 된다.
+      expect(config.cors).toBeUndefined();
     },
   );
 

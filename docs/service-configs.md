@@ -8,7 +8,7 @@
 
 | 식별자 | 서비스 리포 | yml에 있는 키 | Vault에 넣을 값 |
 |---|---|---|---|
-| `gateway` | Expo-Gateway (NestJS) | `port`, `eureka.serviceUrl`, `routing`, `rateLimit`, `publicPaths`, `docs`(dev만) | `secret/gateway` → `jwt.publicKey` |
+| `gateway` | Expo-Gateway (NestJS) | `port`, `eureka.serviceUrl`, `routing`, `rateLimit`, `publicPaths`, `docs`(dev만). `cors`는 넣지 않음 | `secret/gateway` → `jwt.publicKey` |
 | `auth` | Expo-User-Server (Spring) | `spring.datasource.url/username`, `spring.data.redis`, `eureka.client` | `secret/auth` → `spring.datasource.password`, `jwt.privateKey`, 내부 토큰(`internal.token`, `clients.expo.internal-token`) |
 | `expo` | Expo-Expo-Server (Spring) | 위와 같음 (DB `expo`) | `secret/expo` → `spring.datasource.password`, `JWT_PUBLIC_KEY`, 내부 토큰(`EXPO_INTERNAL_TOKEN`, `expo.*.internal-token`) |
 | `apply` | Expo-Application-Server (Spring) | 위와 같음 (DB `expo_application`) | `secret/apply` → `spring.datasource.password`, 내부 토큰(`application.internal-token`) |
@@ -170,6 +170,18 @@ Config Server에는 **인증이 없다.** `/configs/...`와 `/spring/...` 모두
   규칙을 따르는 서비스만 넣는다(지금은 참여·폼·유저). 유저 문서(`GET /auth/v3/api-docs`)는 유저 서비스가 `SWAGGER_ENABLED=true`로 켜져 있어야 열린다. 서비스를 추가할 때 `publicPaths`와 `docs.services`를
   함께 고친다. 메서드를 지정한 항목은 정확히 그 경로만 열린다. `gateway-local.yml`과 `gateway-prod.yml`에는
   넣지 않아 운영에는 노출되지 않는다.
+- 참가자 전화 인증·신청 참가자 경로(#53, Expo-Gateway#25/#29/#35). 세 프로필 모두 `/participant-auth`를
+  `expo-user-server`로 라우팅한다(`/participant`는 세그먼트 경계로 매칭해 `/participant-auth`를 잡지 않는다).
+  `/internal`은 라우팅하지 않는다. 공개 경로는 메서드를 지정한 15개 항목만 연다. User 4개와 Application 11개이며,
+  Application에는 #75의 참가자 목록·QR GET이 포함된다. 접두사 항목으로 열지 않는다. `{name}`은 숫자 또는 UUID 한
+  세그먼트에만, `{name:A|B}`는 나열 값에만 매칭한다. 이 문법은 Gateway #35부터 동작하고, 이전 Gateway는 문자 그대로
+  비교해 해당 경로가 401로 남는다. `rateLimit.participantAuthCode`(IP별 600초에 5건)도 #35부터 읽는다. 이전
+  Gateway는 이 키를 무시해 `POST /participant-auth/code`에 기본 제한만 걸리므로, 이 설정은 Gateway #35가
+  운영(main)에 배포된 뒤에 main으로 내보낸다.
+  `cors`는 넣지 않았다. 현재 브라우저가 Gateway를 직접 부르는 프론트가 없다. Expo-Client는 Next BFF가 서버에서
+  호출해 `Origin`이 없고, Expo-Web은 Gateway를 부르지 않는다. 확정된 프론트 origin도 없다. `cors`를 넣으면
+  목록 밖 `Origin`의 쓰기가 403이 되므로, 브라우저 직접 호출을 도입할 때 정확한 origin 목록과 함께 넣는다(dev
+  `/docs` Try-it-out을 쓰면 Gateway 자신의 origin도 넣는다).
 - `application-{local,dev,prod}.yml`의 `port: 3000`은 초기 placeholder인데 전 서비스에 병합된다 (Spring
   서비스에서는 쓰이지 않는 키). 정리가 필요하다.
 - Report 서비스의 `application.yaml`은 `spring.security.user.password: ${LOCAL_SECURITY_PASSWORD}`를
@@ -182,7 +194,7 @@ Gateway develop `590427fbb4b8226b88b3dd2903e3d126ab096ab9`에서 선택적 `rate
 Config Server와 Gateway에서 각각 `npm ci`와 `npm run build` 후 실행한다:
 
 ```bash
-node scripts/verify-gateway-sms.mjs /path/to/Expo-Gateway
+node scripts/verify-gateway.mjs /path/to/Expo-Gateway
 ```
 
 검증은 실제 `dist/main.js` 프로세스를 부팅하고 Config Server의 실제 프로필 파일을 HTTP로
@@ -200,6 +212,24 @@ local/dev/prod 각각의 관측 결과:
 | 다른 IP의 SMS 검증(후행 슬래시 포함), 제한된 IP의 auth/설문 제출 | 각각 200 |
 
 실제 dev/prod 인프라, 유료 SMS 발송, 알림 서버 Vault/부팅(#17), 다중 Gateway의 통합 예산은
-검증 범위 밖이다. Gateway 기존 SMS e2e는 최초 실행에서 성공 시나리오가 401로 실패했으나,
+검증 범위 밖이다. 아래 참가자 시나리오와 같은 스크립트에서 함께 돈다. Gateway 기존 SMS e2e는 최초 실행에서 성공 시나리오가 401로 실패했으나,
 동일 develop의 단독 및 전체 재실행에서는 통과했다. 원인은 확인하지 못했으며 위 실제 부팅
 검증은 세 프로필 모두 통과했다.
+
+### 참가자 인증·신청 프록시 검증 (#53)
+
+같은 스크립트가 Gateway develop `b3aec9a`(#35 머지)에서 local/dev/prod 각각 다음을 확인한다.
+JWT는 스크립트가 만든 테스트 키로 서명하고, upstream은 Eureka 앱 이름별 로컬 stub이다. 실제 User/알림
+서버와 SMS 업체에는 연결하지 않는다.
+
+| 시나리오 | 결과 |
+|---|---|
+| 공개 15개 항목 17건(UUID/숫자 id, 열거값 포함), JWT 없이 `PARTICIPANT_SESSION` 쿠키로 호출 | 200. User/Application stub에 메서드·URL·Cookie 그대로 도달, `Set-Cookie` 그대로 반환 |
+| 다른 메서드, 숫자/UUID가 아닌 단어, 목록 밖 열거값, 세그먼트 추가/누락, `GET /application`, `/participant`, `/expo` 15건 | 모두 401, upstream 0건 |
+| `/internal/**`, `/participant-auth/internal/x`, `/application/internal/x`, `/application/%69nternal/x` | JWT 없으면 401, 유효 JWT면 404, upstream 0건 |
+| 유효 JWT의 `GET /expo` | 200 (보호 경로 프록시 유지) |
+| 같은 IP의 `POST /participant-auth/code` | 1~5번째 200, 6번째와 `%63ode` 변형 429(`Retry-After-participantAuthCode`), upstream 5건 |
+| 다른 IP의 code, 제한된 IP의 verify·`POST /sms`·신청 등록 | 각각 200 |
+
+Gateway main `a031b5f`(현재 운영)에서는 같은 설정으로 부팅과 SMS 시나리오가 통과하고, placeholder 항목은
+401로 남는다(fail-closed). `participantAuthCode`는 무시된다.
