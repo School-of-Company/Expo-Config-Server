@@ -1,4 +1,6 @@
 import { ConfigService } from '@nestjs/config';
+import { createServer, Server } from 'node:http';
+import { AddressInfo } from 'node:net';
 import {
   VaultConfigProvider,
   VaultUnavailableError,
@@ -116,5 +118,124 @@ describe('VaultConfigProvider', () => {
     const provider = providerWithVaultConfig();
 
     await expect(provider.load('auth')).rejects.toThrow(VaultUnavailableError);
+  });
+
+  it.each([
+    ['{}', {}],
+    ['an unrelated object', { unexpected: true }],
+    ['data without data.data', { data: {} }],
+    ['data.data: null', { data: { data: null } }],
+    ['a JSON array', []],
+  ])(
+    'throws VaultUnavailableError for a 200 body with %s',
+    async (_name, body) => {
+      jest
+        .spyOn(global, 'fetch')
+        .mockImplementation(() =>
+          Promise.resolve(new Response(JSON.stringify(body), { status: 200 })),
+        );
+
+      const provider = providerWithVaultConfig();
+
+      await expect(provider.load('auth')).rejects.toThrow(
+        VaultUnavailableError,
+      );
+    },
+  );
+
+  it('accepts a normal 200 with an empty data.data as an empty secret', async () => {
+    jest.spyOn(global, 'fetch').mockImplementation(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ data: { data: {}, metadata: {} } }), {
+          status: 200,
+        }),
+      ),
+    );
+
+    const provider = providerWithVaultConfig();
+
+    await expect(provider.load('auth')).resolves.toEqual({});
+  });
+
+  it('treats a deleted latest version (404 with data.data: null) as empty', async () => {
+    // Vault 1.20 dev 서버에서 kv delete / destroy 후 실제로 받은 응답 형태
+    jest.spyOn(global, 'fetch').mockImplementation(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            data: {
+              data: null,
+              metadata: {
+                deletion_time: '2026-10-11T23:22:02Z',
+                destroyed: false,
+              },
+            },
+          }),
+          { status: 404 },
+        ),
+      ),
+    );
+
+    const provider = providerWithVaultConfig();
+
+    await expect(provider.load('auth')).resolves.toEqual({});
+  });
+
+  it('falls back to the default timeout when ConfigService returns a raw empty string', async () => {
+    // VAULT_TIMEOUT_MS='' 는 검증에서 미설정으로 빠지고, ConfigService 는 그때 process.env 원문을 돌려준다.
+    jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ data: { data: {} } }), { status: 200 }),
+        ),
+      );
+    const provider = providerWithVaultConfig({
+      VAULT_TIMEOUT_MS: '' as unknown as number,
+    });
+
+    await expect(provider.load('auth')).resolves.toEqual({});
+  });
+
+  describe('timeouts against a loopback Vault stub', () => {
+    let server: Server;
+    let vaultAddr: string;
+    let mode: 'no-headers' | 'stalled-body';
+
+    beforeAll(async () => {
+      server = createServer((_req, res) => {
+        if (mode === 'stalled-body') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.write('{"data":');
+        }
+        // 응답을 끝내지 않는다 — Vault 가 연결만 받고 멈춘 상황
+      });
+      await new Promise<void>((resolve) =>
+        server.listen(0, '127.0.0.1', resolve),
+      );
+      vaultAddr = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    });
+
+    afterAll(async () => {
+      server.closeAllConnections();
+      await new Promise((resolve) => server.close(resolve));
+    });
+
+    it.each(['no-headers', 'stalled-body'] as const)(
+      'fails with VaultUnavailableError within the limit when Vault hangs (%s)',
+      async (hangMode) => {
+        mode = hangMode;
+        const provider = providerWithVaultConfig({
+          VAULT_ADDR: vaultAddr,
+          VAULT_TIMEOUT_MS: 200,
+        });
+
+        const startedAt = Date.now();
+        await expect(provider.load('auth')).rejects.toThrow(
+          VaultUnavailableError,
+        );
+        expect(Date.now() - startedAt).toBeLessThan(2000);
+      },
+    );
   });
 });
