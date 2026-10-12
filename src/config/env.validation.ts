@@ -4,6 +4,7 @@ export interface AppEnv {
   VAULT_TOKEN: string;
   /** 서비스 식별자 → Basic 인증 비밀번호. 없으면 설정 API 인증을 끈다 (#54, docs/config-access-auth.md) */
   CONFIG_CLIENT_CREDENTIALS?: Record<string, string>;
+  VAULT_TIMEOUT_MS?: number;
 }
 
 /** 서비스 식별자·프로파일 형식. 파일 경로와 Vault 경로에 그대로 들어가므로 경로 탐색을 막는 화이트리스트다. */
@@ -39,6 +40,8 @@ function parseClientCredentials(
   return parsed as Record<string, string>;
 }
 
+const MAX_TIMER_MS = 2_147_483_647;
+
 export function validateEnv(config: Record<string, unknown>): AppEnv {
   const vaultAddr = config.VAULT_ADDR;
   const vaultToken = config.VAULT_TOKEN;
@@ -51,6 +54,21 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
   }
 
   const configDir = config.CONFIG_DIR;
+  const timeout = config.VAULT_TIMEOUT_MS;
+  let vaultTimeoutMs: number | undefined;
+  if (timeout !== undefined && timeout !== '') {
+    vaultTimeoutMs = Number(timeout);
+    // 2^31-1 을 넘으면 Node 타이머가 1ms 로 바뀌거나 AbortSignal.timeout 이 예외를 던진다.
+    if (
+      !Number.isInteger(vaultTimeoutMs) ||
+      vaultTimeoutMs <= 0 ||
+      vaultTimeoutMs > MAX_TIMER_MS
+    ) {
+      throw new Error(
+        `VAULT_TIMEOUT_MS must be an integer between 1 and ${MAX_TIMER_MS}`,
+      );
+    }
+  }
 
   return {
     CONFIG_DIR:
@@ -62,5 +80,6 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     CONFIG_CLIENT_CREDENTIALS: parseClientCredentials(
       config.CONFIG_CLIENT_CREDENTIALS,
     ),
+    VAULT_TIMEOUT_MS: vaultTimeoutMs,
   };
 }

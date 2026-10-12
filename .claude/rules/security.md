@@ -43,6 +43,8 @@ const vaultToken = process.env.VAULT_TOKEN;
   `VaultUnavailableError` and responds 503.
 - A 404 from a specific Vault path means "no secret at that path" and is not an error — treat it as
   an empty object.
+- A 200 must carry a KV v2 `data.data` object (an empty `{}` is fine). A 200 without it maps to
+  `VaultUnavailableError` (503) — deleted/destroyed versions come back as 404, never as a bare 200.
 
 ## Error Messages to Clients
 
