@@ -215,26 +215,65 @@ describe('configs/ files', () => {
     ).toEqual(urls.map((url) => `GET ${url}`));
   });
 
-  it.each(['local', 'prod'])(
-    'keeps API docs out of gateway-%s',
-    async (profile) => {
+  it('serves the prod integrated docs only behind a docs-only Basic auth that comes from Vault', async () => {
+    const load = async (profile: string): Promise<Record<string, unknown>> => {
       const config: unknown = yaml.load(
         await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
       );
-      if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
-        throw new Error('Expected Gateway config with publicPaths');
+      if (!isPlainObject(config)) {
+        throw new Error('Expected a YAML mapping');
       }
+      return config;
+    };
+    const prod = await load('prod');
+    const dev = await load('dev');
+    if (
+      !isPlainObject(prod.docs) ||
+      !isPlainObject(dev.docs) ||
+      !Array.isArray(prod.docs.services) ||
+      !Array.isArray(prod.publicPaths)
+    ) {
+      throw new Error('Expected docs.services and publicPaths in gateway-prod');
+    }
 
-      expect(config.docs).toBeUndefined();
-      expect(
-        config.publicPaths.filter(
-          (entry: unknown) =>
-            typeof entry === 'string' &&
-            (entry.includes('/v3/api-docs') || entry === 'GET /docs'),
-        ),
-      ).toEqual([]);
-    },
-  );
+    // 운영은 인증 없이 부팅하지 않게 하고(requireAuth), Try it out을 끈다
+    expect(prod.docs.enabled).toBe(true);
+    expect(prod.docs.requireAuth).toBe(true);
+    expect(prod.docs.tryItOut).toBe(false);
+    // 자격 증명은 Vault에서 병합되므로 yml에 없어야 한다
+    expect(prod.docs.basicAuth).toBeUndefined();
+    expect(JSON.stringify(prod)).not.toMatch(/password|username/i);
+    // 보는 서비스는 dev 통합 문서와 같다
+    expect(prod.docs.services).toEqual(dev.docs.services);
+    // 문서 JSON과 화면은 publicPaths로 열지 않는다(Basic 인증으로만 열린다)
+    expect(
+      prod.publicPaths.filter(
+        (entry: unknown) =>
+          typeof entry === 'string' &&
+          (entry.includes('api-docs') ||
+            entry.includes('swagger') ||
+            entry.includes('/docs')),
+      ),
+    ).toEqual([]);
+  });
+
+  it.each(['local'])('keeps API docs out of gateway-%s', async (profile) => {
+    const config: unknown = yaml.load(
+      await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+    );
+    if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
+      throw new Error('Expected Gateway config with publicPaths');
+    }
+
+    expect(config.docs).toBeUndefined();
+    expect(
+      config.publicPaths.filter(
+        (entry: unknown) =>
+          typeof entry === 'string' &&
+          (entry.includes('/v3/api-docs') || entry === 'GET /docs'),
+      ),
+    ).toEqual([]);
+  });
 
   it.each(
     SERVICES.flatMap((service) =>
