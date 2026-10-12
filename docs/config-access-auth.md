@@ -44,8 +44,8 @@ CONFIG_CLIENT_CREDENTIALS={"gateway":"<gateway 비밀번호>","notification":"<n
 
 | 서비스 | 지금 config 서버 호출 | 인증 설정 |
 |---|---|---|
-| Gateway | `GET /configs/gateway/{PROFILE}` (필수) | `CONFIG_SERVER_PASSWORD` (Expo-Gateway PR 필요, 아래 링크) |
-| Notification | `CONFIG_SERVER_URL`이 있을 때만 `GET /configs/{CONFIG_SERVICE_NAME:-notification}/{CONFIG_PROFILE}` | `CONFIG_SERVER_PASSWORD` (Expo-Notification-Server PR 필요). 사용자 이름은 `CONFIG_SERVICE_NAME` 값 |
+| Gateway | `GET /configs/gateway/{PROFILE}` (필수) | `CONFIG_SERVER_PASSWORD` (Expo-Gateway#45 배포 필요) |
+| Notification | `CONFIG_SERVER_URL`이 있을 때만 `GET /configs/{CONFIG_SERVICE_NAME:-notification}/{CONFIG_PROFILE}` | `CONFIG_SERVER_PASSWORD` (Expo-Notification-Server#36 배포 필요). 사용자 이름은 `CONFIG_SERVICE_NAME` 값 |
 | Form | 호출하지 않음 (`.env`만 사용) | 없음 |
 | User·Expo·Application·Report·Attendance (Spring) | 호출하지 않음 (`spring.config.import: configserver:` 없음, `spring-cloud-starter-config` 없음) | 붙일 때 아래 Spring 설정 |
 
