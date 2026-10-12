@@ -53,8 +53,8 @@ publicPaths:
   # 후기 설문: 입장 QR 없이 누구나 로그인 없이 접근한다(Expo-Form-Server#94). 접두사 항목이라 하위 경로 전체가 열린다.
   - /surveys/public
   - /surveys/answer/public
-  # 프로그램용 폼 조회: 신청 화면이 로그인 없이 폼 정의를 읽는다(Expo-Form-Server#102). GET으로 한정해 PATCH·DELETE는 열지 않는다.
-  - GET /forms/by-id
+  # 프로그램용 폼 조회: 신청 화면이 로그인 없이 폼 정의를 읽는다(Expo-Form-Server#102). GET으로 한정해 PATCH·DELETE는 열지 않는다. 메서드를 붙인 항목은 정확히 그 경로만 열리므로 `{formId}`(UUID 한 세그먼트)까지 적는다. Gateway#35 이후 문법이다.
+  - GET /forms/by-id/{formId}
   # 이미지 조회: 커버 이미지는 <img>로 불러 토큰을 보낼 수 없다. 박람회 서버도 GET /image/{id}를 permitAll로 연다. Gateway#35 이후 문법이고 업로드 POST /image는 계속 JWT 검사를 거친다.
   - GET /image/{id}
   # 연수 프로그램 목록 조회: 참가자 연수 신청 제출이 로그인 없이 프로그램 제목을 id로 바꾸려고 읽는다. 박람회 서버도 permitAll로 연다.
