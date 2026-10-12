@@ -42,7 +42,9 @@ describe('configs/ files', () => {
       expect(
         config.publicPaths.filter(
           (entry: unknown) =>
-            typeof entry === 'string' && entry.includes('/sms'),
+            typeof entry === 'string' &&
+            /^(?:[A-Z]+ )?\/sms(?:\/|$)/.test(entry) &&
+            entry !== 'GET /sms/v3/api-docs',
         ),
       ).toEqual(['POST /sms', 'POST /sms/verify', 'GET /sms']);
       expect(config.routing).toMatchObject({
@@ -86,7 +88,8 @@ describe('configs/ files', () => {
         config.publicPaths.filter(
           (entry: unknown) =>
             typeof entry === 'string' &&
-            /^(?:[A-Z]+ )?\/(participant-auth|application)(\/|$)/.test(entry),
+            /^(?:[A-Z]+ )?\/(participant-auth|application)(\/|$)/.test(entry) &&
+            entry !== 'GET /application/v3/api-docs',
         ),
       ).toEqual([
         'POST /participant-auth/code',
@@ -161,32 +164,51 @@ describe('configs/ files', () => {
       throw new Error('Expected Gateway dev config with docs.services');
     }
 
-    const urls = (config.docs.services as Array<{ url: string }>).map(
-      (service) => service.url,
-    );
+    const urls = config.docs.services.map((service: unknown) => {
+      if (!isPlainObject(service) || typeof service.url !== 'string') {
+        throw new Error('Expected docs service with a URL');
+      }
+      return service.url;
+    });
 
-    expect(urls).toEqual(
-      expect.arrayContaining([
-        '/attendance/v3/api-docs',
-        '/forms/v3/api-docs',
-        '/auth/v3/api-docs',
-      ]),
-    );
-    for (const url of urls) {
-      expect(config.publicPaths).toContain(`GET ${url}`);
-    }
+    expect(urls).toEqual([
+      '/attendance/v3/api-docs',
+      '/forms/v3/api-docs',
+      '/auth/v3/api-docs',
+      '/expo/v3/api-docs',
+      '/application/v3/api-docs',
+      '/sms/v3/api-docs',
+      '/stat/v3/api-docs',
+    ]);
+    expect(config.publicPaths).not.toContain('GET /attendance/swagger-ui');
+    expect(
+      config.publicPaths.filter(
+        (entry: unknown) =>
+          typeof entry === 'string' && entry.includes('/v3/api-docs'),
+      ),
+    ).toEqual(urls.map((url) => `GET ${url}`));
   });
 
-  it('keeps the API docs screen out of the prod gateway config', async () => {
-    const config: unknown = yaml.load(
-      await readFile(join(configsDir, 'gateway-prod.yml'), 'utf-8'),
-    );
-    if (!isPlainObject(config)) {
-      throw new Error('Expected a YAML mapping');
-    }
+  it.each(['local', 'prod'])(
+    'keeps API docs out of gateway-%s',
+    async (profile) => {
+      const config: unknown = yaml.load(
+        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+      );
+      if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
+        throw new Error('Expected Gateway config with publicPaths');
+      }
 
-    expect(config.docs).toBeUndefined();
-  });
+      expect(config.docs).toBeUndefined();
+      expect(
+        config.publicPaths.filter(
+          (entry: unknown) =>
+            typeof entry === 'string' &&
+            (entry.includes('/v3/api-docs') || entry === 'GET /docs'),
+        ),
+      ).toEqual([]);
+    },
+  );
 
   it.each(
     SERVICES.flatMap((service) =>

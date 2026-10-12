@@ -196,7 +196,11 @@ spring:
   대체하지 않는다.
 - `gateway-dev.yml`만 통합 API 문서(`docs`, Expo-Gateway#30)를 켠다. `GET /docs`와 참여 서비스의 OpenAPI
   (`GET /attendance/v3/api-docs`)를 `publicPaths`에 열고, `docs.services`에는 `/{접두사}/v3/api-docs`
-  규칙을 따르는 서비스만 넣는다(지금은 참여·폼·유저). 유저 문서(`GET /auth/v3/api-docs`)는 유저 서비스가 `SWAGGER_ENABLED=true`로 켜져 있어야 열린다. 서비스를 추가할 때 `publicPaths`와 `docs.services`를
+  규칙을 따르는 7개 서비스(참여·폼·유저·박람회·신청·알림·리포트)를 넣는다. 각 서비스 런타임에서
+  `SWAGGER_ENABLED=true`로 켜야 JSON이 나온다. Notification은 `true`/`false` 외의 값을 거부한다.
+  Gateway PR #44의 문서 조회 SMS 예산 제외가 먼저 배포돼야 `/sms/v3/api-docs` 조회가 SMS 한도를 소비하지 않는다.
+  CORS를 추가하는 경우에는 쓰기 Try it out을 위해 dev Gateway 자신의 정확한 origin도 허용해야 한다.
+  현재 BFF 호출 계약에 따라 CORS는 추가하지 않는다. 서비스를 추가할 때 `publicPaths`와 `docs.services`를
   함께 고친다. 메서드를 지정한 항목은 정확히 그 경로만 열린다. `gateway-local.yml`과 `gateway-prod.yml`에는
   넣지 않아 운영에는 노출되지 않는다.
 - 참가자 전화 인증·신청 참가자 경로(#53, Expo-Gateway#25/#29/#35). 세 프로필 모두 `/participant-auth`를

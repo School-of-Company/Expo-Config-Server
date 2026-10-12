@@ -76,12 +76,15 @@ publicPaths:
   - GET /application/expos/{expoId}/participants/{participantId}/qr
   - GET /application/expos/{expoId}/my-applications
   - POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation
-  # 통합 API 문서 화면(Expo-Gateway#30). 화면 자체와 참여 서비스의 OpenAPI JSON만 연다. GET으로 한정한 항목은 정확히 그 경로만 열린다.
+  # 통합 API 문서 화면(Expo-Gateway#30). 화면과 7개 서비스의 OpenAPI JSON만 GET으로 정확히 연다.
   - GET /docs
   - GET /attendance/v3/api-docs
   - GET /forms/v3/api-docs
   - GET /auth/v3/api-docs
-  - GET /attendance/swagger-ui
+  - GET /expo/v3/api-docs
+  - GET /application/v3/api-docs
+  - GET /sms/v3/api-docs
+  - GET /stat/v3/api-docs
 
 # 통합 API 문서(GET /docs). dev에서만 켠다(prod 설정에는 넣지 않는다).
 # 다른 서비스는 각자 /{접두사}/v3/api-docs 로 문서를 내놓을 때 이 목록과 publicPaths에 하나씩 추가한다.
@@ -95,3 +98,11 @@ docs:
       url: /forms/v3/api-docs
     - name: 유저
       url: /auth/v3/api-docs
+    - name: 박람회
+      url: /expo/v3/api-docs
+    - name: 신청
+      url: /application/v3/api-docs
+    - name: 알림
+      url: /sms/v3/api-docs
+    - name: 리포트
+      url: /stat/v3/api-docs
