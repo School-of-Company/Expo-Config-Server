@@ -79,6 +79,8 @@ publicPaths:
   - GET /application/expos/{expoId}/participants/{participantId}/qr
   - GET /application/expos/{expoId}/my-applications
   - POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation
+  - GET /application/expos/{expoId}/my-applications/preregister-waitlist
+  - POST /application/expos/{expoId}/my-applications/preregister-waitlist/cancellation
   # 통합 API 문서 화면(Expo-Gateway#30). 화면과 7개 서비스의 OpenAPI JSON만 GET으로 정확히 연다.
   - GET /docs
   - GET /attendance/v3/api-docs

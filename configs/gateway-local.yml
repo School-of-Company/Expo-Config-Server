@@ -78,3 +78,5 @@ publicPaths:
   - GET /application/expos/{expoId}/participants/{participantId}/qr
   - GET /application/expos/{expoId}/my-applications
   - POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation
+  - GET /application/expos/{expoId}/my-applications/preregister-waitlist
+  - POST /application/expos/{expoId}/my-applications/preregister-waitlist/cancellation
