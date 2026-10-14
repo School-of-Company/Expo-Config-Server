@@ -243,6 +243,29 @@ describe('configs/ files', () => {
     },
   );
 
+  it.each(['local', 'dev', 'prod'])(
+    'opens only the survey read, not survey writes, besides the public survey prefixes in gateway-%s',
+    async (profile) => {
+      const config: unknown = yaml.load(
+        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+      );
+      if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
+        throw new Error('Expected Gateway config with publicPaths');
+      }
+
+      expect(
+        config.publicPaths.filter(
+          (entry: unknown) =>
+            typeof entry === 'string' && /^(\S+ )?\/surveys(\/|$)/.test(entry),
+        ),
+      ).toEqual([
+        '/surveys/public',
+        '/surveys/answer/public',
+        'GET /surveys/{expoId}',
+      ]);
+    },
+  );
+
   it('opens exactly the OpenAPI JSON of every service listed in the dev docs screen', async () => {
     const config: unknown = yaml.load(
       await readFile(join(configsDir, 'gateway-dev.yml'), 'utf-8'),
