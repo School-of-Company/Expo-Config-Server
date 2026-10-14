@@ -162,6 +162,10 @@ async function bootStack(t, profile) {
           data: {
             jwt: { publicKey },
             eureka: { serviceUrl: `http://127.0.0.1:${eurekaPort}/eureka` },
+            // prod docs.requireAuth: Gateway refuses to boot without it. Throwaway test value, not a real secret.
+            ...(profile === 'prod' && {
+              docs: { basicAuth: { username: 'verify', password: randomUUID() } },
+            }),
           },
         },
       }),
@@ -213,7 +217,8 @@ const RATE_LIMIT = {
   limit: 500,
   survey: { ttlSeconds: 60, limit: 300 },
   sms: { ttlSeconds: 60, limit: 10 },
-  participantAuthCode: { ttlSeconds: 600, limit: 5 },
+  participantAuthCode: { ttlSeconds: 600, limit: 50 },
+  signin: { ttlSeconds: 600, limit: 10 },
 };
 
 for (const profile of ['local', 'dev', 'prod']) {
@@ -225,7 +230,7 @@ for (const profile of ['local', 'dev', 'prod']) {
       assert.deepEqual(config.rateLimit, RATE_LIMIT);
       assert.equal(config.routing.prefixes['/sms'], 'expo-notification-server');
       assert.deepEqual(
-        config.publicPaths.filter((entry) => entry.includes('/sms')),
+        config.publicPaths.filter((entry) => entry.includes('/sms') && entry !== 'GET /sms/v3/api-docs'),
         ['POST /sms', 'POST /sms/verify', 'GET /sms'],
       );
 
@@ -374,21 +379,31 @@ for (const profile of ['local', 'dev', 'prod']) {
       assert.equal(protectedOk.status, 200, 'JWT-protected route still proxies');
       assert.equal((await protectedOk.json()).app, 'EXPO-EXPO-SERVER');
 
-      // POST /participant-auth/code: 5 per IP per 600s; the 6th (also as an encoded variant) never reaches User.
-      const codeHits = () => hits.filter((hit) => hit.method === 'POST' && ['/participant-auth/code', '/participant-auth/%63ode'].includes(hit.url)).length;
+      // POST /participant-auth/code: 50 per IP per 600s (#92), counted across exact/encoded/trailing-slash variants.
+      // The 6th request (blocked under the old 5) now passes; the 51st, in any variant, never reaches User.
+      const codePaths = ['/participant-auth/code', '/participant-auth/%63ode', '/participant-auth/code/'];
+      const codeHits = () => hits.filter((hit) => hit.method === 'POST' && codePaths.includes(hit.url)).length;
       const codeBefore = codeHits();
-      for (let i = 0; i < 5; i += 1) {
-        const response = await call('POST', '/participant-auth/code', '203.0.113.40');
-        assert.equal(response.status, 200, `code request ${i + 1}`);
-        assert.equal((await response.json()).app, 'EXPO-USER-SERVER');
+      // %63ode is not a public path (401) but still spends the same per-IP budget as exact/trailing-slash.
+      for (let i = 0; i < 50; i += 1) {
+        const path = codePaths[i % codePaths.length];
+        const response = await call('POST', path, '203.0.113.40');
+        if (path === '/participant-auth/code') {
+          assert.equal(response.status, 200, `code request ${i + 1}`);
+          assert.equal((await response.json()).app, 'EXPO-USER-SERVER');
+        } else {
+          assert.notEqual(response.status, 429, `code request ${i + 1} ${path}`);
+          await response.arrayBuffer();
+        }
       }
-      for (const path of ['/participant-auth/code', '/participant-auth/%63ode']) {
+      const codeAllowed = codeHits() - codeBefore;
+      for (const path of codePaths) {
         const limited = await call('POST', path, '203.0.113.40');
         assert.equal(limited.status, 429, path);
         assert.ok(Number(limited.headers.get('retry-after-participantauthcode')) > 0);
         await limited.arrayBuffer();
       }
-      assert.equal(codeHits() - codeBefore, 5, 'Limited code requests must not reach upstream');
+      assert.equal(codeHits() - codeBefore, codeAllowed, 'Limited code requests must not reach upstream');
       for (const [method, path, ip] of [
         ['POST', '/participant-auth/code', '203.0.113.41'],
         ['POST', '/participant-auth/verify', '203.0.113.40'],
@@ -400,7 +415,7 @@ for (const profile of ['local', 'dev', 'prod']) {
         await adjacent.arrayBuffer();
       }
       console.log(
-        `${profile}: ${opened.length} public 200 (user/application, cookies passed); ${denied.length} denied 401 + 4 internal 401/404 (0 upstream); JWT route 200; code 5x200 + 429x2; other IP/verify/sms/application 200`,
+        `${profile}: ${opened.length} public 200 (user/application, cookies passed); ${denied.length} denied 401 + 4 internal 401/404 (0 upstream); JWT route 200; code budget 50 shared by exact/trailing-slash (200, ${codeAllowed} reached User) and %63ode (401) + 51st 429 in all 3 variants; other IP/verify/sms/application 200`,
       );
     },
   );

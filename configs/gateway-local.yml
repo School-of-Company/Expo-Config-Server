@@ -39,10 +39,12 @@ rateLimit:
   sms:
     ttlSeconds: 60
     limit: 10
-  # 인증번호 요청(POST /participant-auth/code)만 IP별로 제한한다(유료 SMS). 번호별 제한은 User/Notification 서버 몫이다.
+  # 인증번호 요청(POST /participant-auth/code)만 IP별로 제한한다. 행사장 Wi-Fi는 참가자 전체가 IP 하나를 쓰므로(#92)
+  # Notification 전체 상한(sms.authMaxSendCountPerHour 300/시간 = 600초에 50)에 맞춘다. 유료 SMS 비용은
+  # Notification의 번호별(authMaxSendCount)·서비스 전체 시간당 제한이 막는다. 현장에서 429가 보이면 그 상한과 함께 올린다.
   participantAuthCode:
     ttlSeconds: 600
-    limit: 5
+    limit: 50
   # 로그인(POST /auth/signin)만 IP별로 제한한다. Gateway가 signin 키를 지원하기 전에는 무시되어 기본 제한만 걸린다(#83).
   signin:
     ttlSeconds: 600

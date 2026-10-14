@@ -214,7 +214,7 @@ spring:
   `/internal`은 라우팅하지 않는다. 공개 경로는 메서드를 지정한 15개 항목만 연다. User 4개와 Application 11개이며,
   Application에는 #75의 참가자 목록·QR GET이 포함된다. 접두사 항목으로 열지 않는다. `{name}`은 숫자 또는 UUID 한
   세그먼트에만, `{name:A|B}`는 나열 값에만 매칭한다. 이 문법은 Gateway #35부터 동작하고, 이전 Gateway는 문자 그대로
-  비교해 해당 경로가 401로 남는다. `rateLimit.participantAuthCode`(IP별 600초에 5건)도 #35부터 읽는다. 이전
+  비교해 해당 경로가 401로 남는다. `rateLimit.participantAuthCode`(IP별 600초에 50건, #92)도 #35부터 읽는다. 이전
   Gateway는 이 키를 무시해 `POST /participant-auth/code`에 기본 제한만 걸리므로, 이 설정은 Gateway #35가
   운영(main)에 배포된 뒤에 main으로 내보낸다.
   `rateLimit.signin`(IP별 600초에 10건, `POST /auth/signin`)은 #83에서 키만 먼저 넣었다. Gateway가 이 키를 지원하기
@@ -278,8 +278,25 @@ JWT는 스크립트가 만든 테스트 키로 서명하고, upstream은 Eureka 
 | 다른 메서드, 숫자/UUID가 아닌 단어, 목록 밖 열거값, 세그먼트 추가/누락, `GET /application`, `/participant`, `/expo` 15건 | 모두 401, upstream 0건 |
 | `/internal/**`, `/participant-auth/internal/x`, `/application/internal/x`, `/application/%69nternal/x` | JWT 없으면 401, 유효 JWT면 404, upstream 0건 |
 | 유효 JWT의 `GET /expo` | 200 (보호 경로 프록시 유지) |
-| 같은 IP의 `POST /participant-auth/code` | 1~5번째 200, 6번째와 `%63ode` 변형 429(`Retry-After-participantAuthCode`), upstream 5건 |
+| 같은 IP의 `POST /participant-auth/code`(정확한 경로·후행 슬래시·`%63ode` 섞어 50건) | 6번째 이후도 통과(이전 5건 한도에서는 6번째 429), 51번째는 세 변형 모두 429(`Retry-After-participantAuthCode`), 차단 후 upstream 추가 0건 |
 | 다른 IP의 code, 제한된 IP의 verify·`POST /sms`·신청 등록 | 각각 200 |
+
+#### 행사장 공유 IP 예산 (#92)
+
+행사장 Wi-Fi는 참가자 전체가 공인 IP 하나를 쓴다. Expo-Client main은 BFF가 사용자 IP를 넘기지 않아 Gateway에는
+BFF 주소 하나로 보이고(develop은 `TRUSTED_PROXY_HOPS`가 있을 때만 넘긴다, #83), 기존 5건/600초는 몇 명만
+요청해도 같은 IP 전체를 600초 막았다(Gateway throttler는 한도 초과 시 ttl 동안 차단한다).
+`participantAuthCode`를 600초 50건으로 올렸다. 행사 인원 근거가 없어 인원으로 정하지 않고 Notification의 서비스 전체
+상한(`sms.authMaxSendCountPerHour` 300/UTC 시간, 600초로 환산 50)에 맞췄다. 한 IP가 이보다 많이 보내도 Notification이
+막으므로 IP 예산을 그 이상 올려도 발송량은 늘지 않는다. 유료 SMS 비용 방어는 Notification(Redis 원자 연산)이 한다:
+번호별 `authMaxSendCount` 5건/`authCodeTtlSeconds` 180초, 검증 시도 번호별 5회, 서비스 전체 시간당 300건.
+User 서버는 번호 형식(`^01\d{8,9}$`)과 박람회 존재만 확인하고 자체 제한은 없다. 이 값들은 `notification-*.yml`에서
+오며 런타임 환경변수(`SMS_AUTH_MAX_SEND_COUNT*`)가 덮을 수 있다(운영 값 미확인).
+한계: 한 IP가 서비스 전체 시간당 상한을 혼자 다 쓸 수 있어, 남용 시 그 시간 동안 모든 참가자의 인증번호 요청이
+429가 된다(이전에도 IP 10개면 가능했다). 일 단위 상한은 없다(최대 300×24건/일). Gateway 카운터는 인스턴스별
+메모리라 여러 인스턴스면 합산되지 않는다. 현장에서 429가 보이면 Notification 시간당 상한과 이 값을 함께 올린다.
+위 표의 code 행은 Gateway develop `b431564`(= main `4df7fa0`과 같은 트리)에서 세 프로필 모두 확인했다. 스크립트는 #88의
+`signin` 키, dev `/sms/v3/api-docs` 공개 항목, prod 문서 Basic 인증(테스트용 일회 값)을 반영했다.
 
 Gateway main `a031b5f`(현재 운영)에서는 같은 설정으로 부팅과 SMS 시나리오가 통과하고, placeholder 항목은
 401로 남는다(fail-closed). `participantAuthCode`는 무시된다.
