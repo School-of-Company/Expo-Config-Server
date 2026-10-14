@@ -24,6 +24,8 @@ routing:
     /attendance: expo-attention-server
     # 종이 QR 발급(POST /qr-tokens/{expoId}, 관리자)은 /attendance 아래가 아니라 별도 접두사로 참여 서비스에 보낸다
     /qr-tokens: expo-attention-server
+    # 간편입장 합계 조회·+1/취소(GET·POST /walk-in-counts/{expoId}, 관리자 전용)도 /attendance 아래가 아니라 별도 접두사다. publicPaths에는 넣지 않는다
+    /walk-in-counts: expo-attention-server
     /excel: expo-report-server
     /stat: expo-report-server
 
