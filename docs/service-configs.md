@@ -224,6 +224,11 @@ spring:
   호출해 `Origin`이 없고, Expo-Web은 Gateway를 부르지 않는다. 확정된 프론트 origin도 없다. `cors`를 넣으면
   목록 밖 `Origin`의 쓰기가 403이 되므로, 브라우저 직접 호출을 도입할 때 정확한 origin 목록과 함께 넣는다(dev
   `/docs` Try-it-out을 쓰면 Gateway 자신의 origin도 넣는다).
+- 신청 폼 조회(#85): 세 프로필 모두 `GET /forms/{expoId}`를 `publicPaths`에 연다. Expo-Client는 신청 폼을
+  `/api/server` 프록시로 토큰 없이 읽고(참가자 사전·현장 신청 화면과 관리자 폼 수정 화면이 같은 함수를 쓴다), 폼 서버
+  `FormController.findOne`(`GET /forms/:expoId`, `ParseUUIDPipe`)도 인증이 없다. 메서드를 붙인 항목이라 정확히 두
+  세그먼트(숫자 또는 UUID)만 열리고 `POST`·`PATCH /forms/{expoId}`, `DELETE /forms/{expoId}/...`, `/forms/by-id/...`
+  쓰기, `/forms/expos/...`는 계속 JWT 검사를 거친다. `{expoId}` 문법은 Gateway #35부터 동작한다.
 - `application-{local,dev,prod}.yml`의 `port: 3000`은 초기 placeholder인데 전 서비스에 병합된다 (Spring
   서비스에서는 쓰이지 않는 키). 정리가 필요하다.
 - Report 서비스의 `application.yaml`은 `spring.security.user.password: ${LOCAL_SECURITY_PASSWORD}`를
