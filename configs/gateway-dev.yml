@@ -81,20 +81,15 @@ publicPaths:
   - POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation
   - GET /application/expos/{expoId}/my-applications/preregister-waitlist
   - POST /application/expos/{expoId}/my-applications/preregister-waitlist/cancellation
-  # 통합 API 문서 화면(Expo-Gateway#30). 화면과 7개 서비스의 OpenAPI JSON만 GET으로 정확히 연다.
-  - GET /docs
-  - GET /attendance/v3/api-docs
-  - GET /forms/v3/api-docs
-  - GET /auth/v3/api-docs
-  - GET /expo/v3/api-docs
-  - GET /application/v3/api-docs
-  - GET /sms/v3/api-docs
-  - GET /stat/v3/api-docs
 
-# 통합 API 문서(GET /docs). dev에서만 켠다(prod 설정에는 넣지 않는다).
-# 다른 서비스는 각자 /{접두사}/v3/api-docs 로 문서를 내놓을 때 이 목록과 publicPaths에 하나씩 추가한다.
+# 통합 API 문서(GET /docs, Expo-Gateway#30·#50). dev도 문서 전용 Basic 인증이 있을 때만 연다(#84).
+# docs.basicAuth(username, password)는 Vault dev secret/gateway에서 병합된다. 이 파일에 넣지 않는다.
+# requireAuth: true라 Vault 값이 없으면 Gateway가 부팅하지 않는다. 문서 화면·JSON은 publicPaths에 열지 않는다
+# (열어 두면 경로 표기에 따라 Basic 검사를 거치지 않고 JSON이 나간다). Try it out은 dev라 켜 둔다.
+# 다른 서비스는 각자 /{접두사}/v3/api-docs 로 문서를 내놓을 때 이 목록에만 추가한다.
 docs:
   enabled: true
+  requireAuth: true
   title: Expo API 문서
   services:
     - name: 참여

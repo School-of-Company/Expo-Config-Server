@@ -194,14 +194,17 @@ spring:
   인증에서 거부되는 SMS 요청도 예산을 소비한다. Gateway의 기본 메모리 저장소는 인스턴스별이며
   재시작하면 초기화된다. 여러 인스턴스의 합산 제한이나 알림 서버의 번호별/전체 시간당 제한을
   대체하지 않는다.
-- `gateway-dev.yml`만 통합 API 문서(`docs`, Expo-Gateway#30)를 켠다. `GET /docs`와 참여 서비스의 OpenAPI
-  (`GET /attendance/v3/api-docs`)를 `publicPaths`에 열고, `docs.services`에는 `/{접두사}/v3/api-docs`
-  규칙을 따르는 7개 서비스(참여·폼·유저·박람회·신청·알림·리포트)를 넣는다. 각 서비스 런타임에서
-  `SWAGGER_ENABLED=true`로 켜야 JSON이 나온다. Notification은 `true`/`false` 외의 값을 거부한다.
-  Gateway PR #44의 문서 조회 SMS 예산 제외가 먼저 배포돼야 `/sms/v3/api-docs` 조회가 SMS 한도를 소비하지 않는다.
+- `gateway-dev.yml`은 통합 API 문서(`docs`, Expo-Gateway#30)를 켜되 운영과 같이 **문서 전용 Basic 인증**이 있어야만
+  연다(#84). `docs.requireAuth: true`라 Vault dev `secret/gateway`의 `docs.basicAuth.username`·`docs.basicAuth.password`
+  (비밀번호 12자 이상)가 없으면 dev Gateway가 부팅하지 않는다. **Vault dev에 이 값을 넣은 뒤에 배포한다.**
+  문서 화면·서비스 OpenAPI JSON은 `publicPaths`에 열지 않는다. 열어 두면 Basic 인증을 켜도 경로 표기에 따라 Basic
+  검사를 거치지 않고 JSON이 나간다(Gateway의 문서 경로 판정과 `publicPaths` 경로 정규화가 다르다). dev는 Try it out을
+  켜 둔다. `docs.services`에는 `/{접두사}/v3/api-docs` 규칙을 따르는 7개 서비스(참여·폼·유저·박람회·신청·알림·리포트)를
+  넣는다. 각 서비스 런타임에서 `SWAGGER_ENABLED=true`로 켜야 JSON이 나온다. Notification은 `true`/`false` 외의 값을
+  거부한다. Gateway PR #44의 문서 조회 SMS 예산 제외가 먼저 배포돼야 `/sms/v3/api-docs` 조회가 SMS 한도를 소비하지 않는다.
   CORS를 추가하는 경우에는 쓰기 Try it out을 위해 dev Gateway 자신의 정확한 origin도 허용해야 한다.
-  현재 BFF 호출 계약에 따라 CORS는 추가하지 않는다. 서비스를 추가할 때 `publicPaths`와 `docs.services`를
-  함께 고친다. 메서드를 지정한 항목은 정확히 그 경로만 열린다. `gateway-local.yml`에는 넣지 않는다.
+  현재 BFF 호출 계약에 따라 CORS는 추가하지 않는다. 서비스를 추가할 때 `docs.services`만 고친다.
+  `gateway-local.yml`에는 넣지 않는다.
   `gateway-prod.yml`도 통합 문서(`docs`)를 켜되 **문서 전용 Basic 인증**이 있어야만 열린다(Expo-Gateway#50).
   `docs.requireAuth: true`라 Vault `secret/gateway`의 `docs.basicAuth.username`·`docs.basicAuth.password`
   (비밀번호 12자 이상)가 없으면 Gateway가 부팅하지 않고, `tryItOut: false`로 운영에서 Try it out을 끈다.

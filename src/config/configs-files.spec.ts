@@ -179,7 +179,7 @@ describe('configs/ files', () => {
     },
   );
 
-  it('opens exactly the OpenAPI JSON of every service listed in the dev docs screen', async () => {
+  it('serves the dev integrated docs only behind a docs-only Basic auth that comes from Vault', async () => {
     const config: unknown = yaml.load(
       await readFile(join(configsDir, 'gateway-dev.yml'), 'utf-8'),
     );
@@ -208,13 +208,21 @@ describe('configs/ files', () => {
       '/sms/v3/api-docs',
       '/stat/v3/api-docs',
     ]);
-    expect(config.publicPaths).not.toContain('GET /attendance/swagger-ui');
+    // Vault 값이 없으면 부팅하지 않게 한다. 자격 증명은 yml에 없어야 한다
+    expect(config.docs.enabled).toBe(true);
+    expect(config.docs.requireAuth).toBe(true);
+    expect(config.docs.basicAuth).toBeUndefined();
+    expect(JSON.stringify(config)).not.toMatch(/password|username/i);
+    // publicPaths에 남기면 경로 표기에 따라 Basic 검사를 거치지 않고 열린다(#84)
     expect(
       config.publicPaths.filter(
         (entry: unknown) =>
-          typeof entry === 'string' && entry.includes('/v3/api-docs'),
+          typeof entry === 'string' &&
+          (entry.includes('api-docs') ||
+            entry.includes('swagger') ||
+            entry.includes('/docs')),
       ),
-    ).toEqual(urls.map((url) => `GET ${url}`));
+    ).toEqual([]);
   });
 
   it('serves the prod integrated docs only behind a docs-only Basic auth that comes from Vault', async () => {
