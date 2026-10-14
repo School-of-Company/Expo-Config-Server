@@ -55,7 +55,7 @@ describe('configs/ files', () => {
         limit: 500,
         survey: { ttlSeconds: 60, limit: 300 },
         sms: { ttlSeconds: 60, limit: 10 },
-        participantAuthCode: { ttlSeconds: 600, limit: 5 },
+        participantAuthCode: { ttlSeconds: 600, limit: 50 },
         signin: { ttlSeconds: 600, limit: 10 },
       });
     },
@@ -113,6 +113,47 @@ describe('configs/ files', () => {
       ]);
       // 실제 프론트 origin 근거가 없어 넣지 않는다. 넣으면 목록 밖 Origin의 쓰기가 403이 된다.
       expect(config.cors).toBeUndefined();
+    },
+  );
+
+  it.each(['local', 'dev', 'prod'])(
+    'keeps the per-IP participant code budget within the Notification SMS caps in %s',
+    async (profile) => {
+      const gateway: unknown = yaml.load(
+        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+      );
+      const notification: unknown = yaml.load(
+        await readFile(
+          join(configsDir, `notification-${profile}.yml`),
+          'utf-8',
+        ),
+      );
+      if (
+        !isPlainObject(gateway) ||
+        !isPlainObject(gateway.rateLimit) ||
+        !isPlainObject(gateway.rateLimit.participantAuthCode) ||
+        !isPlainObject(notification) ||
+        !isPlainObject(notification.sms)
+      ) {
+        throw new Error('Expected Gateway rateLimit and Notification sms');
+      }
+      const { ttlSeconds, limit } = gateway.rateLimit.participantAuthCode;
+      const { authMaxSendCount, authMaxSendCountPerHour } = notification.sms;
+      if (
+        typeof ttlSeconds !== 'number' ||
+        typeof limit !== 'number' ||
+        typeof authMaxSendCountPerHour !== 'number'
+      ) {
+        throw new Error('Expected numeric limits');
+      }
+
+      // #92: the venue IP budget is loosened on the assumption that paid SMS cost is capped per number and
+      // service-wide in Notification. One IP must not be allowed more than that service-wide hourly cap.
+      expect(authMaxSendCount).toBe(5);
+      expect(authMaxSendCountPerHour).toBe(300);
+      expect((limit * 3600) / ttlSeconds).toBeLessThanOrEqual(
+        authMaxSendCountPerHour,
+      );
     },
   );
 
