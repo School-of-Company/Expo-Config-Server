@@ -43,6 +43,10 @@ rateLimit:
   participantAuthCode:
     ttlSeconds: 600
     limit: 5
+  # 로그인(POST /auth/signin)만 IP별로 제한한다. Gateway가 signin 키를 지원하기 전에는 무시되어 기본 제한만 걸린다(#83).
+  signin:
+    ttlSeconds: 600
+    limit: 10
 
 publicPaths:
   - /health

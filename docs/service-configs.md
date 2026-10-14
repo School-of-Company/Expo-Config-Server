@@ -217,6 +217,9 @@ spring:
   비교해 해당 경로가 401로 남는다. `rateLimit.participantAuthCode`(IP별 600초에 5건)도 #35부터 읽는다. 이전
   Gateway는 이 키를 무시해 `POST /participant-auth/code`에 기본 제한만 걸리므로, 이 설정은 Gateway #35가
   운영(main)에 배포된 뒤에 main으로 내보낸다.
+  `rateLimit.signin`(IP별 600초에 10건, `POST /auth/signin`)은 #83에서 키만 먼저 넣었다. Gateway가 이 키를 지원하기
+  전에는 무시되어 로그인에 기본 제한만 걸린다. Gateway 지원이 배포된 뒤에 효과가 생긴다. `trust proxy` 홉 수와
+  배포 앞단 구성은 확인되지 않았다.
   같은 문법을 쓰는 `GET /image/{id}`(#64)와 `GET /training/program/{expoId}`(#69)도 같은 조건이다. 연수 프로그램
   목록은 Expo-Client 참가자 연수 사전신청 제출이 토큰 없이 읽는다. `GET /standard/program/{expoId}`는 참가자 화면이
   호출하지 않아(Expo-Client는 관리자 토큰으로만 호출, Expo-Web은 Gateway를 부르지 않음) 열지 않는다.
