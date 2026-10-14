@@ -217,6 +217,9 @@ spring:
   비교해 해당 경로가 401로 남는다. `rateLimit.participantAuthCode`(IP별 600초에 5건)도 #35부터 읽는다. 이전
   Gateway는 이 키를 무시해 `POST /participant-auth/code`에 기본 제한만 걸리므로, 이 설정은 Gateway #35가
   운영(main)에 배포된 뒤에 main으로 내보낸다.
+  `rateLimit.signin`(IP별 600초에 10건, `POST /auth/signin`)은 #83에서 키만 먼저 넣었다. Gateway가 이 키를 지원하기
+  전에는 무시되어 로그인에 기본 제한만 걸린다. Gateway 지원이 배포된 뒤에 효과가 생긴다. `trust proxy` 홉 수와
+  배포 앞단 구성은 확인되지 않았다.
   같은 문법을 쓰는 `GET /image/{id}`(#64)와 `GET /training/program/{expoId}`(#69)도 같은 조건이다. 연수 프로그램
   목록은 Expo-Client 참가자 연수 사전신청 제출이 토큰 없이 읽는다. `GET /standard/program/{expoId}`는 참가자 화면이
   호출하지 않아(Expo-Client는 관리자 토큰으로만 호출, Expo-Web은 Gateway를 부르지 않음) 열지 않는다.
@@ -224,6 +227,11 @@ spring:
   호출해 `Origin`이 없고, Expo-Web은 Gateway를 부르지 않는다. 확정된 프론트 origin도 없다. `cors`를 넣으면
   목록 밖 `Origin`의 쓰기가 403이 되므로, 브라우저 직접 호출을 도입할 때 정확한 origin 목록과 함께 넣는다(dev
   `/docs` Try-it-out을 쓰면 Gateway 자신의 origin도 넣는다).
+- 신청 폼 조회(#85): 세 프로필 모두 `GET /forms/{expoId}`를 `publicPaths`에 연다. Expo-Client는 신청 폼을
+  `/api/server` 프록시로 토큰 없이 읽고(참가자 사전·현장 신청 화면과 관리자 폼 수정 화면이 같은 함수를 쓴다), 폼 서버
+  `FormController.findOne`(`GET /forms/:expoId`, `ParseUUIDPipe`)도 인증이 없다. 메서드를 붙인 항목이라 정확히 두
+  세그먼트(숫자 또는 UUID)만 열리고 `POST`·`PATCH /forms/{expoId}`, `DELETE /forms/{expoId}/...`, `/forms/by-id/...`
+  쓰기, `/forms/expos/...`는 계속 JWT 검사를 거친다. `{expoId}` 문법은 Gateway #35부터 동작한다.
 - `application-{local,dev,prod}.yml`의 `port: 3000`은 초기 placeholder인데 전 서비스에 병합된다 (Spring
   서비스에서는 쓰이지 않는 키). 정리가 필요하다.
 - Report 서비스의 `application.yaml`은 `spring.security.user.password: ${LOCAL_SECURITY_PASSWORD}`를

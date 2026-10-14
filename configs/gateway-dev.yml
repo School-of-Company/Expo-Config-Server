@@ -24,6 +24,8 @@ routing:
     /attendance: expo-attention-server
     # 종이 QR 발급(POST /qr-tokens/{expoId}, 관리자)은 /attendance 아래가 아니라 별도 접두사로 참여 서비스에 보낸다
     /qr-tokens: expo-attention-server
+    # 간편입장 합계 조회·+1/취소(GET·POST /walk-in-counts/{expoId}, 관리자 전용)도 /attendance 아래가 아니라 별도 접두사다. publicPaths에는 넣지 않는다
+    /walk-in-counts: expo-attention-server
     /excel: expo-report-server
     /stat: expo-report-server
 
@@ -42,6 +44,10 @@ rateLimit:
   participantAuthCode:
     ttlSeconds: 600
     limit: 5
+  # 로그인(POST /auth/signin)만 IP별로 제한한다. Gateway가 signin 키를 지원하기 전에는 무시되어 기본 제한만 걸린다(#83).
+  signin:
+    ttlSeconds: 600
+    limit: 10
 
 publicPaths:
   - /health
@@ -56,6 +62,9 @@ publicPaths:
   - /surveys/answer/public
   # 프로그램용 폼 조회: 신청 화면이 로그인 없이 폼 정의를 읽는다(Expo-Form-Server#102). GET으로 한정해 PATCH·DELETE는 열지 않는다. 메서드를 붙인 항목은 정확히 그 경로만 열리므로 `{formId}`(UUID 한 세그먼트)까지 적는다. Gateway#35 이후 문법이다.
   - GET /forms/by-id/{formId}
+  # 신청 폼 조회: 참가자 신청 화면(사전·현장 신청)이 로그인 없이 (박람회, 참여자군, 신청방식)으로 폼 정의를 읽는다. 폼 서버 GET /forms/:expoId도 인증이 없다.
+  # GET·두 세그먼트(UUID/숫자)만 연다. POST·PATCH /forms/{expoId}, DELETE /forms/{expoId}/..., /forms/by-id/... 쓰기는 계속 JWT 검사를 거친다.
+  - GET /forms/{expoId}
   # 이미지 조회: 커버 이미지는 <img>로 불러 토큰을 보낼 수 없다. 박람회 서버도 GET /image/{id}를 permitAll로 연다. Gateway#35 이후 문법이고 업로드 POST /image는 계속 JWT 검사를 거친다.
   - GET /image/{id}
   # 연수 프로그램 목록 조회: 참가자 연수 신청 제출이 로그인 없이 프로그램 제목을 id로 바꾸려고 읽는다. 박람회 서버도 permitAll로 연다.

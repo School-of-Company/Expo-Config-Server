@@ -56,6 +56,7 @@ describe('configs/ files', () => {
         survey: { ttlSeconds: 60, limit: 300 },
         sms: { ttlSeconds: 60, limit: 10 },
         participantAuthCode: { ttlSeconds: 600, limit: 5 },
+        signin: { ttlSeconds: 600, limit: 10 },
       });
     },
   );
@@ -176,6 +177,28 @@ describe('configs/ files', () => {
           '/standard': 'expo-expo-server',
         },
       });
+    },
+  );
+
+  it.each(['local', 'dev', 'prod'])(
+    'opens only form reads, not form writes, in gateway-%s',
+    async (profile) => {
+      const config: unknown = yaml.load(
+        await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
+      );
+      if (!isPlainObject(config) || !Array.isArray(config.publicPaths)) {
+        throw new Error('Expected Gateway config with publicPaths');
+      }
+
+      // 신청 폼·프로그램용 폼 조회만 연다. 생성·수정·삭제는 JWT 검사를 거친다
+      expect(
+        config.publicPaths.filter(
+          (entry: unknown) =>
+            typeof entry === 'string' &&
+            /^(\S+ )?\/forms(\/|$)/.test(entry) &&
+            entry !== 'GET /forms/v3/api-docs',
+        ),
+      ).toEqual(['GET /forms/by-id/{formId}', 'GET /forms/{expoId}']);
     },
   );
 
