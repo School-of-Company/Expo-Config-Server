@@ -236,6 +236,11 @@ spring:
   토큰 없이 읽고, 폼 서버 `SurveyController.findOne`(`GET /surveys/:expoId`)도 인증이 없다. 응답에는 문항 스펙과
   `totalAnswers`(응답 수)가 포함된다. 정확히 두 세그먼트만 열려 `POST`·`PATCH /surveys/{expoId}`,
   `DELETE /surveys/{expoId}/...`는 계속 JWT 검사를 거치고, `/surveys/public`·`/surveys/answer/public`은 기존 접두사 항목이 연다.
+- 만족도 조사 제출(#100): 세 프로필 모두 `POST /surveys/answer/standard/{expoId}`, `POST /surveys/answer/trainee/{expoId}`를
+  연다. Expo-Client가 `/api/server` 프록시로 토큰 없이 보내고, 폼 서버 `SurveyAnswerController`는 가드 없이 전화번호로
+  응답자를 확인하고 같은 응답자의 활성 제출을 한 건으로 막는다. 이 두 경로만 열리고 다른 메서드, 다른 참여자군 값,
+  하위 경로, `/surveys` 쓰기는 계속 JWT 검사를 거친다. `rateLimit.survey`는 Gateway가 `POST /surveys/answer/public/*`만
+  세므로 이 두 경로에는 기본 IP 제한(60초 500건)만 걸린다.
 - `application-{local,dev,prod}.yml`의 `port: 3000`은 초기 placeholder인데 전 서비스에 병합된다 (Spring
   서비스에서는 쓰이지 않는 키). 정리가 필요하다.
 - Report 서비스의 `application.yaml`은 `spring.security.user.password: ${LOCAL_SECURITY_PASSWORD}`를
