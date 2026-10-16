@@ -108,7 +108,7 @@ async function bootStack(t, profile) {
           cookie: req.headers.cookie,
         };
         hits.push(hit);
-        res.writeHead(200, {
+        res.writeHead(req.url.includes('probe=missing') ? 404 : 200, {
           'Content-Type': 'application/json',
           'Set-Cookie': 'PARTICIPANT_SESSION=stub; Path=/; HttpOnly; Secure; SameSite=Lax',
         });
@@ -222,6 +222,58 @@ const RATE_LIMIT = {
 };
 
 for (const profile of ['local', 'dev', 'prod']) {
+  test(`${profile}: standard program public list`, { timeout: 30000 }, async (t) => {
+    const { hits, call } = await bootStack(t, profile);
+    const path = `/standard/program/${randomUUID()}`;
+    if (process.env.VERIFY_STANDARD_BASELINE === '1') {
+      const response = await call('GET', path, '203.0.113.80');
+      assert.equal(response.status, 401);
+      await response.arrayBuffer();
+      assert.equal(hits.length, 0);
+      console.log(`${profile}: before fix GET 401; upstream 0`);
+      return;
+    }
+    for (const url of [path, `${path}?probe=list`, `${path}/`, '/standard/program/123', '/training/program/123']) {
+      const response = await call('GET', url, '203.0.113.80');
+      assert.equal(response.status, 200, url);
+      const hit = await response.json();
+      assert.deepEqual([hit.app, hit.method, hit.url], ['EXPO-EXPO-SERVER', 'GET', url]);
+    }
+    const missing = await call('GET', `${path}?probe=missing`, '203.0.113.80');
+    assert.equal(missing.status, 404);
+    assert.equal((await missing.json()).url, `${path}?probe=missing`);
+    for (const url of ['/forms/123', '/forms/by-id/123', '/surveys/123']) {
+      const response = await call('GET', url, '203.0.113.83');
+      assert.equal(response.status, 200, url);
+      assert.equal((await response.json()).app, 'EXPO-FORM-SERVER');
+    }
+    const docs = await call('GET', '/docs', '203.0.113.83');
+    assert.equal(docs.status, profile === 'dev' ? 200 : 401);
+    await docs.arrayBuffer();
+    const before = hits.length;
+    const denied = [
+      ['POST', path], ['PATCH', path], ['DELETE', path], ['PUT', path], ['HEAD', path], ['OPTIONS', path],
+      ['GET', '/standard/123'], ['GET', `${path}/extra`], ['GET', '/standard/program'],
+      ['GET', '/standard/program/abc'], ['GET', '/standard/programs/123'],
+      ['GET', '/standard/program/123;admin'], ['GET', '/standard/program/123%2Fextra'],
+      ['POST', '/standard/123'], ['PATCH', '/standard/123'], ['DELETE', '/standard/123'],
+    ];
+    for (const [method, url] of denied) {
+      const response = await call(method, url, '203.0.113.81');
+      assert.equal(response.status, 401, `${method} ${url}`);
+      await response.arrayBuffer();
+    }
+    assert.equal(hits.length, before, 'Protected requests must not reach upstream');
+    const authorization = { Authorization: `Bearer ${accessToken()}` };
+    for (const [method, url] of [['GET', path], ['GET', '/standard/123'], ['POST', '/standard/123'], ['PATCH', '/standard/123'], ['DELETE', '/standard/123']]) {
+      const response = await call(method, url, '203.0.113.82', authorization);
+      assert.equal(response.status, 200, `admin ${method} ${url}`);
+      const hit = await response.json();
+      assert.deepEqual([hit.app, hit.method, hit.url], ['EXPO-EXPO-SERVER', method, url]);
+    }
+    console.log(`${profile}: public UUID/query/slash/numeric + training 200; upstream 404 preserved; ${denied.length} protected 401 (0 upstream); signed admin 5x200`);
+  });
+
   test(
     `${profile}: real Config Server -> Gateway bootstrap -> SMS stub`,
     { timeout: 30000 },

@@ -221,8 +221,16 @@ spring:
   전에는 무시되어 로그인에 기본 제한만 걸린다. Gateway 지원이 배포된 뒤에 효과가 생긴다. `trust proxy` 홉 수와
   배포 앞단 구성은 확인되지 않았다.
   같은 문법을 쓰는 `GET /image/{id}`(#64)와 `GET /training/program/{expoId}`(#69)도 같은 조건이다. 연수 프로그램
-  목록은 Expo-Client 참가자 연수 사전신청 제출이 토큰 없이 읽는다. `GET /standard/program/{expoId}`는 참가자 화면이
-  호출하지 않아(Expo-Client는 관리자 토큰으로만 호출, Expo-Web은 Gateway를 부르지 않음) 열지 않는다.
+  목록은 Expo-Client 참가자 연수 사전신청 제출이 토큰 없이 읽는다. #99는 세 프로필에
+  `GET /standard/program/{expoId}`도 추가한다. Client develop `30336fc8` 및 main의 `ProgramApplyContainer`,
+  develop의 `useApplicationSessions`는 `getPublicStandardProgram` → `clientInstance`(`/api/server`)로 읽는다.
+  관리자 `getStandardProgram` → `clientTokenInstance`는 별개다. Expo SecurityConfig도 이 GET 목록을 permitAll 한다.
+  일반 프로그램 상세 `GET /standard/{id}`, 쓰기, 하위·유사·비ID 경로는 계속 JWT 검사를 거친다.
+  Gateway는 query를 제외하고 매칭하며 trailing slash 하나를 허용한다. 숫자/UUID matcher 통과는 Expo ID 유효성을
+  보장하지 않는다. Expo ID 생성 계약은 UUIDv7이고 목록 컨트롤러는 String을 받아 존재 여부를 조회한다.
+  Config 릴리스 후 Gateway 재시작이 필요하다. 검증 스크립트는 실제 Config→Gateway와 로컬 상류 stub을 사용하므로
+  실제 참가자 브라우저·Expo 데이터/인가/응답 DTO는 검증하지 않는다. 상류 404 전달과 테스트 키로 서명한 관리자 JWT
+  전달은 확인하며, 운영 데이터·SMS·Vault에는 쓰지 않는다.
   `cors`는 넣지 않았다. 현재 브라우저가 Gateway를 직접 부르는 프론트가 없다. Expo-Client는 Next BFF가 서버에서
   호출해 `Origin`이 없고, Expo-Web은 Gateway를 부르지 않는다. 확정된 프론트 origin도 없다. `cors`를 넣으면
   목록 밖 `Origin`의 쓰기가 403이 되므로, 브라우저 직접 호출을 도입할 때 정확한 origin 목록과 함께 넣는다(dev
