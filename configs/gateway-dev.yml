@@ -70,6 +70,10 @@ publicPaths:
   # 설문 조회: 참가자 만족도 조사 응답 화면이 로그인 없이 (박람회, 참여자군)으로 설문 문항을 읽는다(#140). 폼 서버 GET /surveys/:expoId도 인증이 없다.
   # GET·두 세그먼트(UUID/숫자)만 연다. POST·PATCH /surveys/{expoId}, DELETE /surveys/{expoId}/... 쓰기는 계속 JWT 검사를 거친다.
   - GET /surveys/{expoId}
+  # 참가자 만족도 조사 제출(#100): 응답 화면이 로그인 없이 보낸다. 폼 서버가 전화번호로 응답자를 확인하고 같은 응답자의 중복 제출을 막는다.
+  # 이 두 경로만 정확히 연다. rateLimit.survey는 /surveys/answer/public 만 세므로 여기에는 기본 IP 제한만 걸린다.
+  - POST /surveys/answer/standard/{expoId}
+  - POST /surveys/answer/trainee/{expoId}
   # 이미지 조회: 커버 이미지는 <img>로 불러 토큰을 보낼 수 없다. 박람회 서버도 GET /image/{id}를 permitAll로 연다. Gateway#35 이후 문법이고 업로드 POST /image는 계속 JWT 검사를 거친다.
   - GET /image/{id}
   # 연수 프로그램 목록 조회: 참가자 연수 신청 제출이 로그인 없이 프로그램 제목을 id로 바꾸려고 읽는다. 박람회 서버도 permitAll로 연다.
