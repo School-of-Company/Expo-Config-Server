@@ -197,7 +197,7 @@ describe('configs/ files', () => {
   );
 
   it.each(['local', 'dev', 'prod'])(
-    'opens only the training program list read under /training and /standard in gateway-%s',
+    'opens only participant program list reads under /training and /standard in gateway-%s',
     async (profile) => {
       const config: unknown = yaml.load(
         await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
@@ -211,8 +211,11 @@ describe('configs/ files', () => {
           typeof entry === 'string' &&
           /^(\S+ )?\/(training|standard)(\/|$)/.test(entry),
       );
-      // 참가자 연수 신청이 토큰 없이 읽는 조회만 연다. 쓰기와 일반 프로그램 목록은 JWT 검사를 거친다
-      expect(programEntries).toEqual(['GET /training/program/{expoId}']);
+      // 참가자 신청이 토큰 없이 읽는 목록만 연다. 상세·쓰기는 JWT 검사를 거친다
+      expect(programEntries).toEqual([
+        'GET /training/program/{expoId}',
+        'GET /standard/program/{expoId}',
+      ]);
       expect(config.routing).toMatchObject({
         prefixes: {
           '/training': 'expo-expo-server',
