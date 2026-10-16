@@ -110,6 +110,7 @@ describe('configs/ files', () => {
         'POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation',
         'GET /application/expos/{expoId}/my-applications/preregister-waitlist',
         'POST /application/expos/{expoId}/my-applications/preregister-waitlist/cancellation',
+        'POST /application/expos/{expoId}/page-views',
       ]);
       // 실제 프론트 origin 근거가 없어 넣지 않는다. 넣으면 목록 밖 Origin의 쓰기가 403이 된다.
       expect(config.cors).toBeUndefined();
@@ -244,7 +245,7 @@ describe('configs/ files', () => {
   );
 
   it.each(['local', 'dev', 'prod'])(
-    'opens only the survey read, not survey writes, besides the public survey prefixes in gateway-%s',
+    'opens only the survey read and participant answer submits, not survey writes, besides the public survey prefixes in gateway-%s',
     async (profile) => {
       const config: unknown = yaml.load(
         await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
@@ -262,6 +263,8 @@ describe('configs/ files', () => {
         '/surveys/public',
         '/surveys/answer/public',
         'GET /surveys/{expoId}',
+        'POST /surveys/answer/standard/{expoId}',
+        'POST /surveys/answer/trainee/{expoId}',
       ]);
     },
   );
