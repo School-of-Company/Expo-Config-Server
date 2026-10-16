@@ -419,4 +419,71 @@ for (const profile of ['local', 'dev', 'prod']) {
       );
     },
   );
+
+  test(
+    `${profile}: real Config Server -> Gateway bootstrap -> survey answer stubs`,
+    { timeout: 30000 },
+    async (t) => {
+      const { config, hits, call } = await bootStack(t, profile);
+      assert.deepEqual(config.rateLimit, RATE_LIMIT);
+
+      // Participant satisfaction survey submit (#100): Form checks the respondent by phone number.
+      const expo = randomUUID();
+      const opened = [
+        `/surveys/answer/standard/${expo}`,
+        `/surveys/answer/trainee/${expo}`,
+        `/surveys/answer/trainee/${expo}/`,
+      ];
+      for (const path of opened) {
+        const response = await call('POST', path, '203.0.113.50');
+        assert.equal(response.status, 200, `POST ${path} (upstream hits ${hits.length})`);
+        const hit = await response.json();
+        assert.deepEqual(
+          { app: hit.app, method: hit.method, url: hit.url, body: hit.body },
+          { app: 'EXPO-FORM-SERVER', method: 'POST', url: path, body: JSON.stringify({ probe: 'stub-only' }) },
+        );
+      }
+      const before = hits.length;
+      const denied = [
+        ['GET', `/surveys/answer/standard/${expo}`],
+        ['PUT', `/surveys/answer/standard/${expo}`],
+        ['PATCH', `/surveys/answer/trainee/${expo}`],
+        ['DELETE', `/surveys/answer/trainee/${expo}`],
+        ['POST', '/surveys/answer/standard/abc'],
+        ['POST', '/surveys/answer/standard/..%2Fpublic'],
+        ['POST', `/surveys/answer/standard/${expo}/extra`],
+        ['POST', `/surveys/answer/other/${expo}`],
+        ['POST', '/surveys/answer/standard'],
+        ['POST', `/surveys/answer/${expo}`],
+        ['POST', `/surveys/${expo}`],
+        ['PATCH', `/surveys/${expo}`],
+        ['DELETE', `/surveys/${expo}/1`],
+        ['POST', '/surveys'],
+        ['GET', `/surveys/lottery/${expo}`],
+      ];
+      for (const [method, path] of denied) {
+        const response = await call(method, path, '203.0.113.51');
+        assert.equal(response.status, 401, `${method} ${path}`);
+        await response.arrayBuffer();
+      }
+      assert.equal(hits.length, before, 'Denied requests must not reach upstream');
+
+      // rateLimit.survey (300/60s per IP) covers only POST /surveys/answer/public/*: once it is spent,
+      // standard/trainee submits from the same IP still pass, bounded only by the 500/60s default.
+      for (let i = 0; i < RATE_LIMIT.survey.limit; i += 1) {
+        const response = await call('POST', `/surveys/answer/public/${expo}`, '203.0.113.52');
+        assert.equal(response.status, 200, `public survey submit ${i + 1}`);
+        await response.arrayBuffer();
+      }
+      const limited = await call('POST', `/surveys/answer/public/${expo}`, '203.0.113.52');
+      assert.equal(limited.status, 429);
+      await limited.arrayBuffer();
+      const unbudgeted = await call('POST', `/surveys/answer/standard/${expo}`, '203.0.113.52');
+      assert.equal(unbudgeted.status, 200, 'standard submit is outside rateLimit.survey');
+      await unbudgeted.arrayBuffer();
+      console.log(
+        `${profile}: ${opened.length} survey submits 200 (Form stub); ${denied.length} denied 401 (0 upstream); public survey budget 300 + 301st 429, standard submit after it 200`,
+      );
+    },
+  );
 }
