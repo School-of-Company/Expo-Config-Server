@@ -527,4 +527,40 @@ for (const profile of ['local', 'dev', 'prod']) {
       console.log(`${profile}: 2 page-view records 200 (Application stub); ${denied.length} denied 401 (0 upstream)`);
     },
   );
+
+  test(
+    `${profile}: real Config Server -> Gateway bootstrap -> expo preregister session list stub`,
+    { timeout: 30000 },
+    async (t) => {
+      const { config, hits, call } = await bootStack(t, profile);
+      assert.deepEqual(config.rateLimit, RATE_LIMIT);
+
+      // Participant session list (Expo-Expo-Server#118): Expo permits only this path without login.
+      const expo = randomUUID();
+      const path = `/expo/${expo}/preregister-sessions/public`;
+      const response = await call('GET', path, '203.0.113.70');
+      assert.equal(response.status, 200, `GET ${path} (upstream hits ${hits.length})`);
+      const hit = await response.json();
+      assert.deepEqual({ app: hit.app, method: hit.method, url: hit.url }, { app: 'EXPO-EXPO-SERVER', method: 'GET', url: path });
+      const before = hits.length;
+      const denied = [
+        ['GET', `/expo/${expo}/preregister-sessions`],
+        ['GET', `/expo/${expo}/preregister-sessions/7`],
+        ['POST', `/expo/${expo}/preregister-sessions/public`],
+        ['PATCH', `/expo/${expo}/preregister-sessions/public`],
+        ['DELETE', `/expo/${expo}/preregister-sessions/public`],
+        ['GET', `/expo/${expo}/preregister-sessions/public/extra`],
+        ['GET', '/expo/abc/preregister-sessions/public'],
+        ['GET', `/expo/${expo}`],
+        ['GET', '/expo'],
+      ];
+      for (const [method, deniedPath] of denied) {
+        const deniedResponse = await call(method, deniedPath, '203.0.113.71');
+        assert.equal(deniedResponse.status, 401, `${method} ${deniedPath}`);
+        await deniedResponse.arrayBuffer();
+      }
+      assert.equal(hits.length, before, 'Denied requests must not reach upstream');
+      console.log(`${profile}: preregister session list 200 (Expo stub); ${denied.length} denied 401 (0 upstream)`);
+    },
+  );
 }
