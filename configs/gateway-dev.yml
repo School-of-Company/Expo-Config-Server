@@ -99,6 +99,8 @@ publicPaths:
   - POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation
   - GET /application/expos/{expoId}/my-applications/preregister-waitlist
   - POST /application/expos/{expoId}/my-applications/preregister-waitlist/cancellation
+  # 신청화면 방문 기록(#101): 로그인 없이 진입마다 한 번 보낸다. 신청 서버가 로그인·CSRF 없이 열고 visitorId(UUID)만 받는다. 관리자 조회 /application/admin/expos/{expoId}/page-views는 열지 않는다.
+  - POST /application/expos/{expoId}/page-views
   # 통합 API 문서 화면(Expo-Gateway#30). 화면과 7개 서비스의 OpenAPI JSON만 GET으로 정확히 연다.
   - GET /docs
   - GET /attendance/v3/api-docs

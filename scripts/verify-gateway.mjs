@@ -486,4 +486,45 @@ for (const profile of ['local', 'dev', 'prod']) {
       );
     },
   );
+
+  test(
+    `${profile}: real Config Server -> Gateway bootstrap -> application page-view stub`,
+    { timeout: 30000 },
+    async (t) => {
+      const { config, hits, call } = await bootStack(t, profile);
+      assert.deepEqual(config.rateLimit, RATE_LIMIT);
+
+      // Anonymous PV/UV record (#101): Application permits it without login or CSRF.
+      const expo = randomUUID();
+      for (const path of [`/application/expos/${expo}/page-views`, `/application/expos/${expo}/page-views/`]) {
+        const response = await call('POST', path, '203.0.113.60');
+        assert.equal(response.status, 200, `POST ${path} (upstream hits ${hits.length})`);
+        const hit = await response.json();
+        assert.deepEqual(
+          { app: hit.app, method: hit.method, url: hit.url, body: hit.body },
+          { app: 'EXPO-APPLICATION-SERVER', method: 'POST', url: path, body: JSON.stringify({ probe: 'stub-only' }) },
+        );
+      }
+      const before = hits.length;
+      const denied = [
+        ['GET', `/application/admin/expos/${expo}/page-views`],
+        ['POST', `/application/admin/expos/${expo}/page-views`],
+        ['GET', `/application/expos/${expo}/page-views`],
+        ['PUT', `/application/expos/${expo}/page-views`],
+        ['PATCH', `/application/expos/${expo}/page-views`],
+        ['DELETE', `/application/expos/${expo}/page-views`],
+        ['POST', '/application/expos/abc/page-views'],
+        ['POST', `/application/expos/${expo}/page-views/extra`],
+        ['POST', `/application/expos/${expo}/page-view`],
+        ['POST', '/application/expos/page-views'],
+      ];
+      for (const [method, path] of denied) {
+        const response = await call(method, path, '203.0.113.61');
+        assert.equal(response.status, 401, `${method} ${path}`);
+        await response.arrayBuffer();
+      }
+      assert.equal(hits.length, before, 'Denied requests must not reach upstream');
+      console.log(`${profile}: 2 page-view records 200 (Application stub); ${denied.length} denied 401 (0 upstream)`);
+    },
+  );
 }

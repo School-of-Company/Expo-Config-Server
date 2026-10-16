@@ -99,6 +99,8 @@ publicPaths:
   - POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation
   - GET /application/expos/{expoId}/my-applications/preregister-waitlist
   - POST /application/expos/{expoId}/my-applications/preregister-waitlist/cancellation
+  # 신청화면 방문 기록(#101): 로그인 없이 진입마다 한 번 보낸다. 신청 서버가 로그인·CSRF 없이 열고 visitorId(UUID)만 받는다. 관리자 조회 /application/admin/expos/{expoId}/page-views는 열지 않는다.
+  - POST /application/expos/{expoId}/page-views
 
 # 통합 API 문서(GET /docs, Expo-Gateway#50). 운영은 문서 전용 Basic 인증이 있을 때만 연다.
 # docs.basicAuth(username, password)는 Vault secret/gateway에서 병합된다. 이 파일에 넣지 않는다.
