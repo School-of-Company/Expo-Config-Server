@@ -111,6 +111,9 @@ describe('configs/ files', () => {
         'POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation',
         'GET /application/expos/{expoId}/my-applications/preregister-waitlist',
         'POST /application/expos/{expoId}/my-applications/preregister-waitlist/cancellation',
+        'GET /application/expos/{expoId}/my-applications/promotion-offers',
+        'POST /application/expos/{expoId}/my-applications/promotion-offers/{offerId}/acceptance',
+        'POST /application/expos/{expoId}/my-applications/promotion-offers/{offerId}/decline',
         'POST /application/expos/{expoId}/page-views',
       ]);
       // 실제 프론트 origin 근거가 없어 넣지 않는다. 넣으면 목록 밖 Origin의 쓰기가 403이 된다.

@@ -376,6 +376,9 @@ for (const profile of ['local', 'dev', 'prod']) {
         ['APPLICATION', 'POST', `/application/expos/${expo}/my-applications/TRAINING/${randomUUID()}/cancellation`],
         ['APPLICATION', 'GET', `/application/expos/${expo}/my-applications/preregister-waitlist`],
         ['APPLICATION', 'POST', `/application/expos/${expo}/my-applications/preregister-waitlist/cancellation`],
+        ['APPLICATION', 'GET', `/application/expos/${expo}/my-applications/promotion-offers`],
+        ['APPLICATION', 'POST', `/application/expos/${expo}/my-applications/promotion-offers/${randomUUID()}/acceptance`],
+        ['APPLICATION', 'POST', `/application/expos/${expo}/my-applications/promotion-offers/${randomUUID()}/decline`],
       ];
       for (const [service, method, path] of opened) {
         const response = await call(method, path, '203.0.113.30', {
@@ -407,6 +410,9 @@ for (const profile of ['local', 'dev', 'prod']) {
         ['DELETE', `/application/expos/${expo}/my-applications/PREREGISTER/42/cancellation`],
         ['POST', `/application/expos/${expo}/my-applications/preregister-waitlist`],
         ['GET', `/application/expos/${expo}/my-applications/preregister-waitlist/cancellation`],
+        ['POST', `/application/expos/${expo}/my-applications/promotion-offers`],
+        ['GET', `/application/expos/${expo}/my-applications/promotion-offers/${randomUUID()}/acceptance`],
+        ['POST', `/application/expos/${expo}/my-applications/promotion-offers/abc/decline`],
         ['GET', `/application/expos/${expo}/participants/12`],
         ['GET', '/participant'],
         ['GET', '/expo'],
