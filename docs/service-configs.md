@@ -217,9 +217,11 @@ spring:
   비교해 해당 경로가 401로 남는다. `rateLimit.participantAuthCode`(IP별 600초에 50건, #92)도 #35부터 읽는다. 이전
   Gateway는 이 키를 무시해 `POST /participant-auth/code`에 기본 제한만 걸리므로, 이 설정은 Gateway #35가
   운영(main)에 배포된 뒤에 main으로 내보낸다.
-  `rateLimit.signin`(IP별 600초에 10건, `POST /auth/signin`)은 #83에서 키만 먼저 넣었다. Gateway가 이 키를 지원하기
-  전에는 무시되어 로그인에 기본 제한만 걸린다. Gateway 지원이 배포된 뒤에 효과가 생긴다. `trust proxy` 홉 수와
-  배포 앞단 구성은 확인되지 않았다.
+  `rateLimit.signin`(IP별 600초에 10건, `POST /auth/signin`, #83)은 Gateway main(`c368878`)이 읽어 `signin`
+  throttler로 건다. `verify-gateway.mjs`가 11번째 로그인(후행 슬래시·`%73ignin` 포함) 429와 다른 IP 통과를 점검한다.
+  계정 단위 실패 잠금은 User 서버(`SignInAttemptLimiter`)가 맡는다. 한도는 IP 기준이라 Client가 사용자 IP를 넘기지
+  않으면(`TRUSTED_PROXY_HOPS` 미설정) 모든 관리자 로그인이 BFF 주소 하나로 이 한도를 함께 쓴다. Client 배포 앞단 구성은
+  아직 확인되지 않았다.
   같은 문법을 쓰는 `GET /image/{id}`(#64)와 `GET /training/program/{expoId}`(#69)도 같은 조건이다. 연수 프로그램
   목록은 Expo-Client 참가자 연수 사전신청 제출이 토큰 없이 읽는다. #99는 세 프로필에
   `GET /standard/program/{expoId}`도 추가한다. Client develop `30336fc8` 및 main의 `ProgramApplyContainer`,

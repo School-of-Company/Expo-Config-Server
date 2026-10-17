@@ -46,7 +46,7 @@ rateLimit:
   participantAuthCode:
     ttlSeconds: 600
     limit: 50
-  # 로그인(POST /auth/signin)만 IP별로 제한한다. Gateway가 signin 키를 지원하기 전에는 무시되어 기본 제한만 걸린다(#83).
+  # 로그인(POST /auth/signin)만 IP별로 제한한다(#83). 계정(닉네임) 단위 실패 잠금은 User 서버가 따로 건다.
   signin:
     ttlSeconds: 600
     limit: 10
@@ -107,6 +107,10 @@ publicPaths:
   - POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation
   - GET /application/expos/{expoId}/my-applications/preregister-waitlist
   - POST /application/expos/{expoId}/my-applications/preregister-waitlist/cancellation
+  # 대기 승급 참여 제안 조회·수락·거절(Expo-Application-Server#144, #115). 같은 참가자 세션·CSRF 방식이고 {offerId}는 UUID다.
+  - GET /application/expos/{expoId}/my-applications/promotion-offers
+  - POST /application/expos/{expoId}/my-applications/promotion-offers/{offerId}/acceptance
+  - POST /application/expos/{expoId}/my-applications/promotion-offers/{offerId}/decline
   # 신청화면 방문 기록(#101): 로그인 없이 진입마다 한 번 보낸다. 신청 서버가 로그인·CSRF 없이 열고 visitorId(UUID)만 받는다. 관리자 조회 /application/admin/expos/{expoId}/page-views는 열지 않는다.
   - POST /application/expos/{expoId}/page-views
 
