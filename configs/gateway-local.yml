@@ -98,6 +98,8 @@ publicPaths:
   - GET /application/program-session-csrf
   - POST /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/applications
   - POST /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/application-batches
+  - POST /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/onsite-applications
+  - POST /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/onsite-application-batches
   - GET /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/participants
   - GET /application/expos/{expoId}/participants/{participantId}/qr
   - GET /application/expos/{expoId}/my-applications
