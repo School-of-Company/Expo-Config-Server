@@ -615,4 +615,40 @@ for (const profile of ['local', 'dev', 'prod']) {
       console.log(`${profile}: preregister session list 200 (Expo stub); ${denied.length} denied 401 (0 upstream)`);
     },
   );
+
+  test(
+    `${profile}: real Config Server -> Gateway bootstrap -> signin IP limit`,
+    { timeout: 30000 },
+    async (t) => {
+      const { config, hits, call } = await bootStack(t, profile);
+      assert.deepEqual(config.rateLimit, RATE_LIMIT);
+
+      // POST /auth/signin only (#83): 10 per IP per 600s, then 429 without reaching User.
+      const { limit } = RATE_LIMIT.signin;
+      for (let i = 0; i < limit; i += 1) {
+        const response = await call('POST', '/auth/signin', '203.0.113.90');
+        assert.equal(response.status, 200, `signin #${i + 1} (upstream hits ${hits.length})`);
+        const hit = await response.json();
+        assert.deepEqual([hit.app, hit.method, hit.url], ['EXPO-USER-SERVER', 'POST', '/auth/signin']);
+      }
+      const before = hits.length;
+      for (const path of ['/auth/signin', '/auth/signin/', '/auth/%73ignin']) {
+        const response = await call('POST', path, '203.0.113.90');
+        assert.equal(response.status, 429, `POST ${path} after ${limit}`);
+        await response.arrayBuffer();
+      }
+      assert.equal(hits.length, before, 'Throttled signin must not reach upstream');
+
+      // Another IP still signs in; other auth paths on the throttled IP only see the base limit.
+      for (const [method, path, ip] of [
+        ['POST', '/auth/signin', '203.0.113.91'],
+        ['PATCH', '/auth', '203.0.113.90'],
+      ]) {
+        const response = await call(method, path, ip);
+        assert.equal(response.status, 200, `${method} ${path} from ${ip}`);
+        await response.arrayBuffer();
+      }
+      console.log(`${profile}: signin ${limit} x 200, then 429 x 3 (0 upstream); other IP and PATCH /auth 200`);
+    },
+  );
 }
