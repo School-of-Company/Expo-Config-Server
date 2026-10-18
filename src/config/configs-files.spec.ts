@@ -111,6 +111,7 @@ describe('configs/ files', () => {
         'GET /application/expos/{expoId}/participants/{participantId}/qr',
         'GET /application/expos/{expoId}/my-applications',
         'POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation',
+        'POST /application/expos/{expoId}/my-applications/PREREGISTER/{applicationId}/companions',
         'GET /application/expos/{expoId}/my-applications/preregister-waitlist',
         'POST /application/expos/{expoId}/my-applications/preregister-waitlist/cancellation',
         'GET /application/expos/{expoId}/my-applications/promotion-offers',
