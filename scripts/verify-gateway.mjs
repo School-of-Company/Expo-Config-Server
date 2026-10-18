@@ -375,6 +375,7 @@ for (const profile of ['local', 'dev', 'prod']) {
         ['APPLICATION', 'GET', `/application/expos/${expo}/participants/12/qr`],
         ['APPLICATION', 'GET', `/application/expos/${expo}/my-applications`],
         ['APPLICATION', 'POST', `/application/expos/${expo}/my-applications/PREREGISTER/42/cancellation`],
+        ['APPLICATION', 'POST', `/application/expos/${expo}/my-applications/PREREGISTER/42/companions`],
         ['APPLICATION', 'POST', `/application/expos/${expo}/my-applications/TRAINING/${randomUUID()}/cancellation`],
         ['APPLICATION', 'GET', `/application/expos/${expo}/my-applications/preregister-waitlist`],
         ['APPLICATION', 'POST', `/application/expos/${expo}/my-applications/preregister-waitlist/cancellation`],
