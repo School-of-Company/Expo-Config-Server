@@ -592,19 +592,22 @@ for (const profile of ['local', 'dev', 'prod']) {
   );
 
   test(
-    `${profile}: real Config Server -> Gateway bootstrap -> expo preregister session list stub`,
+    `${profile}: real Config Server -> Gateway bootstrap -> expo public read stubs`,
     { timeout: 30000 },
     async (t) => {
       const { config, hits, call } = await bootStack(t, profile);
       assert.deepEqual(config.rateLimit, RATE_LIMIT);
 
-      // Participant session list (Expo-Expo-Server#118): Expo permits only this path without login.
+      // Participant session list (Expo-Expo-Server#118) and expo public read (Expo-Expo-Server#155):
+      // Expo permits only these paths without login.
       const expo = randomUUID();
-      const path = `/expo/${expo}/preregister-sessions/public`;
-      const response = await call('GET', path, '203.0.113.70');
-      assert.equal(response.status, 200, `GET ${path} (upstream hits ${hits.length})`);
-      const hit = await response.json();
-      assert.deepEqual({ app: hit.app, method: hit.method, url: hit.url }, { app: 'EXPO-EXPO-SERVER', method: 'GET', url: path });
+      const allowed = [`/expo/${expo}/preregister-sessions/public`, `/expo/${expo}/public`];
+      for (const path of allowed) {
+        const response = await call('GET', path, '203.0.113.70');
+        assert.equal(response.status, 200, `GET ${path} (upstream hits ${hits.length})`);
+        const hit = await response.json();
+        assert.deepEqual({ app: hit.app, method: hit.method, url: hit.url }, { app: 'EXPO-EXPO-SERVER', method: 'GET', url: path });
+      }
       const before = hits.length;
       const denied = [
         ['GET', `/expo/${expo}/preregister-sessions`],
@@ -614,6 +617,11 @@ for (const profile of ['local', 'dev', 'prod']) {
         ['DELETE', `/expo/${expo}/preregister-sessions/public`],
         ['GET', `/expo/${expo}/preregister-sessions/public/extra`],
         ['GET', '/expo/abc/preregister-sessions/public'],
+        ['POST', `/expo/${expo}/public`],
+        ['PATCH', `/expo/${expo}/public`],
+        ['DELETE', `/expo/${expo}/public`],
+        ['GET', `/expo/${expo}/public/extra`],
+        ['GET', '/expo/abc/public'],
         ['GET', `/expo/${expo}`],
         ['GET', '/expo'],
       ];
@@ -623,7 +631,7 @@ for (const profile of ['local', 'dev', 'prod']) {
         await deniedResponse.arrayBuffer();
       }
       assert.equal(hits.length, before, 'Denied requests must not reach upstream');
-      console.log(`${profile}: preregister session list 200 (Expo stub); ${denied.length} denied 401 (0 upstream)`);
+      console.log(`${profile}: ${allowed.length} expo public reads 200 (Expo stub); ${denied.length} denied 401 (0 upstream)`);
     },
   );
 
