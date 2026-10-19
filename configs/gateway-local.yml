@@ -83,6 +83,8 @@ publicPaths:
   # 참가자용 사전등록 회차 목록(Expo-Expo-Server#118): 신청 화면이 로그인 없이 회차를 고른다. 박람회 서버도 이 경로만 permitAll로 연다.
   # 관리자 목록·단건 조회(GET /expo/{expoId}/preregister-sessions[/{sessionId}])와 쓰기는 계속 JWT 검사를 거친다. Gateway#35 이후 문법이다.
   - GET /expo/{expoId}/preregister-sessions/public
+  # 참가자 신청 화면용 박람회 공개 조회(Expo-Expo-Server#155). 박람회 서버도 이 경로만 permitAll로 열고, 기존 상세 GET /expo/{expoId}는 계속 JWT 검사를 거친다.
+  - GET /expo/{expoId}/public
   # 참가자 전화 인증(Expo-Gateway#25). PARTICIPANT_SESSION 쿠키로 동작해 JWT 검사를 하지 않는다.
   - POST /participant-auth/code
   - POST /participant-auth/verify
