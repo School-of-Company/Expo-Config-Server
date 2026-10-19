@@ -24,6 +24,14 @@ sms:
   authMaxSendCountPerHour: 300
   authMaxVerifyAttemptCount: 5
   eventMaxAttempts: 5
+  # contactStandardNumber, contactTraineeNumber, qrUrlTemplate, traineeQrUrlTemplate은 알림 서버 필수 키라 없으면
+  # 부팅이 실패한다. 일부러 값을 두지 않는다: 원격 값이 환경변수보다 우선해서 placeholder를 두면
+  # SMS_CONTACT_*_NUMBER / SMS_(TRAINEE_)QR_URL_TEMPLATE의 실제 값을 덮어쓰고, 부팅은 통과한 채 발송 시점에 실패한다.
+  # 환경변수로 주거나, 확정된 값을 아래 형식 그대로 주석 해제해 넣는다 (Notification docs/events-and-config.md).
+  # contactStandardNumber: "<일반 참가자 문의번호>"
+  # contactTraineeNumber: "<연수생 문의번호>"
+  # qrUrlTemplate: "https://<Client 도메인>/qr?expoId={expoId}&type={participationType}&id={id}&code={code}"
+  # traineeQrUrlTemplate: "https://<Client 도메인>/qr?expoId={expoId}&type={participationType}&id={id}&phoneNumber={phoneNumber}"
 
 eureka:
   # 알림 서버의 Eureka 등록 키. 키 이름은 Expo-Notification-Server#4에서 확정되면 맞춘다.
