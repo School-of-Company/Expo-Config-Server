@@ -233,7 +233,7 @@ describe('configs/ files', () => {
   );
 
   it.each(['local', 'dev', 'prod'])(
-    'opens only the participant preregister session list under /expo in gateway-%s',
+    'opens only the participant expo and preregister session reads under /expo in gateway-%s',
     async (profile) => {
       const config: unknown = yaml.load(
         await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
@@ -242,7 +242,7 @@ describe('configs/ files', () => {
         throw new Error('Expected Gateway config with publicPaths');
       }
 
-      // 참가자 회차 목록 조회만 연다. 관리자 회차 조회·쓰기와 박람회 API는 JWT 검사를 거친다
+      // 참가자 박람회 공개 조회와 회차 목록 조회만 연다. 관리자 회차 조회·쓰기와 박람회 API는 JWT 검사를 거친다
       expect(
         config.publicPaths.filter(
           (entry: unknown) =>
@@ -250,7 +250,10 @@ describe('configs/ files', () => {
             /^(\S+ )?\/expo(\/|$)/.test(entry) &&
             entry !== 'GET /expo/v3/api-docs',
         ),
-      ).toEqual(['GET /expo/{expoId}/preregister-sessions/public']);
+      ).toEqual([
+        'GET /expo/{expoId}/preregister-sessions/public',
+        'GET /expo/{expoId}/public',
+      ]);
       expect(config.routing).toMatchObject({
         prefixes: { '/expo': 'expo-expo-server' },
       });
