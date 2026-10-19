@@ -46,7 +46,7 @@ describe('configs/ files', () => {
             /^(?:[A-Z]+ )?\/sms(?:\/|$)/.test(entry) &&
             entry !== 'GET /sms/v3/api-docs',
         ),
-      ).toEqual(['POST /sms', 'POST /sms/verify', 'GET /sms']);
+      ).toEqual(['POST /sms', 'POST /sms/verify']);
       expect(config.routing).toMatchObject({
         prefixes: { '/sms': 'expo-notification-server' },
       });
@@ -161,6 +161,8 @@ describe('configs/ files', () => {
       // service-wide in Notification. One IP must not be allowed more than that service-wide hourly cap.
       expect(authMaxSendCount).toBe(5);
       expect(authMaxSendCountPerHour).toBe(300);
+      // Expo-Notification-Server#80: User's internal calls count against a separate hourly bucket.
+      expect(notification.sms.authMaxInternalSendCountPerHour).toBe(300);
       expect((limit * 3600) / ttlSeconds).toBeLessThanOrEqual(
         authMaxSendCountPerHour,
       );
@@ -418,7 +420,7 @@ describe('configs/ files', () => {
   it('keeps internal tokens out of the public configs (they belong in Vault)', async () => {
     // docs/internal-token.md 의 토큰 키 이름. 이 리포는 public 이라 yml 에 두면 공개된다.
     const tokenKeys =
-      /^\s*(token|internal-token|delete-internal-token|[A-Z_]*INTERNAL_TOKEN)\s*:/m;
+      /^\s*(token|internal-token|delete-internal-token|authInternalToken|[A-Z_]*INTERNAL_TOKEN)\s*:/m;
     for (const fileName of fileNames) {
       const content = await readFile(join(configsDir, fileName), 'utf-8');
       expect({ fileName, hasTokenKey: tokenKeys.test(content) }).toEqual({
