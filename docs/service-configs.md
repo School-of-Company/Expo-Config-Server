@@ -4,22 +4,35 @@
 사람이 "어느 파일의 무엇을 채우고, 무엇은 yml이 아니라 Vault에 넣어야 하는지"를 한 번에 볼 수 있게
 정리했다. 키 구성은 각 서비스 리포의 `application.yaml`/`.env.example`을 기준으로 잡았다.
 
+> **현재 실제로 config 서버를 읽는 서비스는 Gateway(필수)와 Notification(`CONFIG_SERVER_URL`이 있을 때만)뿐이다**
+> (각 리포 `develop` 기준, 2026-10-20 확인). Form과 Spring 서비스(User·Expo·Application·Report·Attendance)는 config 서버를
+> 호출하지 않고 환경변수(`.env`)로만 설정을 받는다. Spring 서비스는 `build.gradle.kts`에 `spring-cloud-starter-config`가
+> 없고 `application.yaml`에 `spring.config.import: configserver:`도 없다 (`optional:file:.env[.properties]`만 있다).
+> 그래서 아래 표에서 `form`, `auth`, `expo`, `apply`, `report`의 yml과 Vault 값은 **아직 서비스에 반영되지 않는다**.
+> 이 서비스들의 값을 바꾸려면 config 서버가 아니라 각 서비스의 환경변수를 바꾼다. 소비 서비스별 현황은
+> `docs/config-access-auth.md`의 "소비 서비스" 표가 기준이다.
+
 ## 서비스별 구성
 
-| 식별자 | 서비스 리포 | yml에 있는 키 | Vault에 넣을 값 |
-|---|---|---|---|
-| `gateway` | Expo-Gateway (NestJS) | `port`, `eureka.serviceUrl`, `routing`, `rateLimit`, `publicPaths`, `docs`(dev만). `cors`는 넣지 않음 | `secret/gateway` → `jwt.publicKey` |
-| `auth` | Expo-User-Server (Spring) | `spring.datasource.url/username`, `spring.data.redis`, `eureka.client` | `secret/auth` → `spring.datasource.password`, `jwt.privateKey`, 내부 토큰(`internal.token`, `clients.expo.internal-token`) |
-| `expo` | Expo-Expo-Server (Spring) | 위와 같음 (DB `expo`) | `secret/expo` → `spring.datasource.password`, `JWT_PUBLIC_KEY`, 내부 토큰(`EXPO_INTERNAL_TOKEN`, `expo.*.internal-token`) |
-| `apply` | Expo-Application-Server (Spring) | 위와 같음 (DB `expo_application`) | `secret/apply` → `spring.datasource.password`, 내부 토큰(`application.internal-token`) |
-| `report` | Expo-Report-Server (Spring) | `spring.datasource.url/username`, `eureka.client` (Redis 없음) | `secret/report` → `spring.datasource.password`, `JWT_PUBLIC_KEY` |
-| `form` | Expo-Form-Server (NestJS) | `port`, `database.sslRejectUnauthorized`(prod만) | `secret/form` → `database.url` (접속 계정 포함 전체 URL), 내부 토큰(`INTERNAL_TOKEN`, `USER_SERVICE_INTERNAL_TOKEN`) |
-| `notification` | Expo-Notification-Server (NestJS) | `port`, `kafka`, `redis`, `sms`(발신번호·발송 한도), `eureka.serviceUrl` (`local` 파일도 있음) | `secret/notification` → `sms.apiKey`, `sms.apiSecret`, `discord.participantNumberUrl`(선택), `redis.password`(쓰는 경우) |
+| 식별자 | 서비스 리포 | 지금 config 서버 사용 | yml에 있는 키 | Vault에 넣을 값 |
+|---|---|---|---|---|
+| `gateway` | Expo-Gateway (NestJS) | 사용 (필수) | `port`, `eureka.serviceUrl`, `routing`, `rateLimit`, `publicPaths`, `docs`(dev만). `cors`는 넣지 않음 | `secret/gateway` → `jwt.publicKey` |
+| `auth` | Expo-User-Server (Spring) | 미사용 (환경변수) | `spring.datasource.url/username`, `spring.data.redis`, `eureka.client` | `secret/auth` → `spring.datasource.password`, `jwt.privateKey`, 내부 토큰(`internal.token`, `clients.expo.internal-token`) |
+| `expo` | Expo-Expo-Server (Spring) | 미사용 (환경변수) | 위와 같음 (DB `expo`) | `secret/expo` → `spring.datasource.password`, `JWT_PUBLIC_KEY`, 내부 토큰(`EXPO_INTERNAL_TOKEN`, `expo.*.internal-token`) |
+| `apply` | Expo-Application-Server (Spring) | 미사용 (환경변수) | 위와 같음 (DB `expo_application`) | `secret/apply` → `spring.datasource.password`, 내부 토큰(`application.internal-token`) |
+| `report` | Expo-Report-Server (Spring) | 미사용 (환경변수) | `spring.datasource.url/username`, `eureka.client` (Redis 없음) | `secret/report` → `spring.datasource.password`, `JWT_PUBLIC_KEY` |
+| `form` | Expo-Form-Server (NestJS) | 미사용 (환경변수) | `port`, `database.sslRejectUnauthorized`(prod만) | `secret/form` → `database.url` (접속 계정 포함 전체 URL), 내부 토큰(`INTERNAL_TOKEN`, `USER_SERVICE_INTERNAL_TOKEN`) |
+| `notification` | Expo-Notification-Server (NestJS) | 사용 (`CONFIG_SERVER_URL`이 있을 때만) | `port`, `kafka`, `redis`, `sms`(발신번호·발송 한도), `eureka.serviceUrl` (`local` 파일도 있음) | `secret/notification` → `sms.apiKey`, `sms.apiSecret`, `discord.participantNumberUrl`(선택), `redis.password`(쓰는 경우) |
 
 서비스 간 내부 호출 토큰의 경로·키 이름과 발급 방법은 `docs/internal-token.md`에 있다. 유저 서비스 식별자는 `auth`를 유지한다
 (이미 `auth-*.yml`, `secret/auth`, 문서가 이 이름을 쓴다. 근거는 `docs/internal-token.md`). Spring 서비스의
 키는 Spring 속성 이름 그대로 중첩해 두었다. 나중에 Spring 호환 엔드포인트를 붙일 때 평탄화만 하면 되게
 하려는 것이고, 그 결정 전까지는 이 구조가 확정은 아니다.
+
+`auth`, `expo`, `apply`, `report`, `form`의 yml과 Vault 값은 소비 서비스가 붙기 전까지 읽히지 않는다. 그 사이 Vault
+`secret/auth` 등에 실제 비밀(JWT 개인키, DB 비밀번호, 내부 토큰)을 넣어 두면 쓰이지 않는 곳에 비밀만 늘어나므로,
+해당 서비스를 config 서버에 붙이는 시점에 맞춰 넣는다. 이미 넣은 값이 있다면 서비스가 실제로 쓰는 환경변수와
+같은지 확인하고, 쓰이지 않으면 지울지 정한다 (정리 여부는 이 문서가 아니라 별도 이슈에서 정한다).
 
 ## 값 채우기
 
@@ -40,7 +53,8 @@
   한 번 커밋하면 지워도 공개된 것으로 봐야 한다. DB/Redis 호스트 같은 내부 주소를 public 리포에 올릴지도
   먼저 정한다.
 - 반영 순서: 브랜치에서 수정 → `develop`으로 PR → config 서버 이미지 재배포 → 각 서비스 재시작
-  (config 서버는 `configs/`를 이미지에 담고, 서비스는 부팅 시에만 설정을 읽는다).
+  (config 서버는 `configs/`를 이미지에 담고, 서비스는 부팅 시에만 설정을 읽는다). 위 안내대로 지금은 Gateway와
+  Notification에만 해당한다.
 
 ## Vault에 시크릿 넣기
 
@@ -83,7 +97,7 @@ vault kv patch -mount=secret notification - < secret.json
 
 Spring Cloud Config Client는 `propertySources`가 든 Environment JSON을 기대해서 `/configs/...`(중첩 JSON)에는
 그대로 붙지 않는다. 그래서 같은 병합 결과를 Spring 형식으로 돌려주는 경로를 따로 둔다.
-`/configs/:service/:profile`는 Gateway·Form이 쓰는 계약이라 바꾸지 않았다.
+`/configs/:service/:profile`는 Gateway·Notification이 쓰는 계약이라 바꾸지 않았다.
 
 | 경로 | 응답 |
 |---|---|
@@ -103,7 +117,8 @@ Spring Cloud Config Client는 `propertySources`가 든 Environment JSON을 기�
   (빈 설정으로 내려주면 서비스가 비밀 값 없이 기동하므로 실패로 돌려준다)
 - **프로파일은 하나만** 받는다. `dev,local` 같은 여러 개는 식별자 검증에서 `400`이다.
 
-Spring 서비스 쪽 설정 (예: 유저 서비스):
+Spring 서비스 쪽 설정 (예: 유저 서비스). **현재 어떤 Spring 서비스도 이 설정을 쓰지 않는다.** 붙이려면
+`spring-cloud-starter-config` 의존성도 함께 추가해야 한다 (앞으로 붙일 때의 예시):
 
 ```yaml
 spring:
