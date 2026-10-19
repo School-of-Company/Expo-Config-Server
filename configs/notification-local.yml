@@ -1,4 +1,4 @@
-# Vault secret/notification: sms.apiKey, sms.apiSecret, discord.participantNumberUrl, redis.password(쓰는 경우).
+# Vault secret/notification: sms.apiKey, sms.apiSecret, sms.authInternalToken, discord.participantNumberUrl, redis.password(쓰는 경우).
 # 채워 넣는 방법은 docs/service-configs.md 참고.
 # 로컬에서는 config 서버 docker compose가 호스트 3000을 쓰고, 원격 값이 환경변수 PORT보다 우선하므로 3001로 둔다.
 port: 3001
@@ -23,6 +23,8 @@ sms:
   authCodeTtlSeconds: 180
   authMaxSendCount: 5
   authMaxSendCountPerHour: 300
+  # X-Internal-Token(Vault sms.authInternalToken)을 붙인 User 요청의 시간당 상한. 공개 상한과 따로 센다(Expo-Notification-Server#80).
+  authMaxInternalSendCountPerHour: 300
   authMaxVerifyAttemptCount: 5
   eventMaxAttempts: 5
 

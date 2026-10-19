@@ -58,7 +58,6 @@ publicPaths:
   - PATCH /auth
   - POST /sms
   - POST /sms/verify
-  - GET /sms
   # 후기 설문: 입장 QR 없이 누구나 로그인 없이 접근한다(Expo-Form-Server#94). 접두사 항목이라 하위 경로 전체가 열린다.
   - /surveys/public
   - /surveys/answer/public

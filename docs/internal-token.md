@@ -32,7 +32,7 @@ Config Server는 `secret/{service}`의 값을 그대로 병합해 내려줄 뿐�
 |---|---|
 | 토큰 | 환경마다 1개, 32자 이상 난수 (`openssl rand -hex 32` → 64자) |
 | 넣는 곳 | 내부 호출이 있는 서비스 경로에만: `secret/auth`, `secret/expo`, `secret/apply`, `secret/form` |
-| 넣지 않는 곳 | **`secret/application`** (Gateway 포함 전 서비스에 내려감), `secret/gateway`, 내부 호출이 없는 서비스(`report`, `notification`) |
+| 넣지 않는 곳 | **`secret/application`** (Gateway 포함 전 서비스에 내려감), `secret/gateway`, 내부 호출이 없는 서비스(`report`) |
 | 키 이름 | 각 서비스가 **지금 읽는 설정 이름 그대로** (아래 표). Spring 속성은 점(`.`) 기준으로 중첩한 JSON |
 | 값 노출 | 코드·yml·로그·오류 메시지에 값을 남기지 않는다. 확인은 SHA-256 지문 앞 16자리로 한다 |
 
@@ -47,6 +47,9 @@ Config Server는 `secret/{service}`의 값을 그대로 병합해 내려줄 뿐�
 | `secret/apply` | `{"application": {"internal-token": T}}` | `application.internal-token` (`APPLICATION_INTERNAL_TOKEN`) | 신청 `/internal/**` 보호 + 신청 → Expo·Form·유저 호출 |
 | `secret/form` | `{"INTERNAL_TOKEN": T, "USER_SERVICE_INTERNAL_TOKEN": T}` | 같은 이름 (Nest `ConfigService`) | Form `/internal/**` 보호 + Form → 유저 호출 |
 
+- Notification의 `sms.authInternalToken`은 위 공용 토큰과 별개로, User → Notification `POST /sms` 전용이다
+  (Expo-Notification-Server#80, #138). `secret/notification`에 `{"sms": {"authInternalToken": T2}}`로 넣고, User의
+  Notification 호출 토큰(Expo-User-Server#178)과 같은 값(32자 이상)으로 둔다. 스크립트는 이 키를 쓰지 않는다.
 - Expo의 `EXPO_INTERNAL_TOKEN`, Form의 키들은 서비스 코드가 환경변수 이름 그대로 읽어서 최상위 키로 둔다.
 - Form의 `PARTICIPATION_SERVICE_INTERNAL_TOKEN`은 참여(attendance) 서비스에 내부 API가 생기면 같은 값으로 추가한다
   (지금은 비워 두면 현장 QR 설문만 비활성).

@@ -22,7 +22,7 @@
 | `apply` | Expo-Application-Server (Spring) | 미사용 (환경변수) | 위와 같음 (DB `expo_application`) | `secret/apply` → `spring.datasource.password`, 내부 토큰(`application.internal-token`) |
 | `report` | Expo-Report-Server (Spring) | 미사용 (환경변수) | `spring.datasource.url/username`, `eureka.client` (Redis 없음) | `secret/report` → `spring.datasource.password`, `JWT_PUBLIC_KEY` |
 | `form` | Expo-Form-Server (NestJS) | 미사용 (환경변수) | `port`, `database.sslRejectUnauthorized`(prod만) | `secret/form` → `database.url` (접속 계정 포함 전체 URL), 내부 토큰(`INTERNAL_TOKEN`, `USER_SERVICE_INTERNAL_TOKEN`) |
-| `notification` | Expo-Notification-Server (NestJS) | 사용 (`CONFIG_SERVER_URL`이 있을 때만) | `port`, `kafka`, `redis`, `sms`(발신번호·발송 한도), `eureka.serviceUrl` (`local` 파일도 있음) | `secret/notification` → `sms.apiKey`, `sms.apiSecret`, `discord.participantNumberUrl`(선택), `redis.password`(쓰는 경우) |
+| `notification` | Expo-Notification-Server (NestJS) | 사용 (`CONFIG_SERVER_URL`이 있을 때만) | `port`, `kafka`, `redis`, `sms`(발신번호·발송 한도), `eureka.serviceUrl` (`local` 파일도 있음) | `secret/notification` → `sms.apiKey`, `sms.apiSecret`, `sms.authInternalToken`(32자 이상, User와 같은 값), `discord.participantNumberUrl`(선택), `redis.password`(쓰는 경우) |
 
 서비스 간 내부 호출 토큰의 경로·키 이름과 발급 방법은 `docs/internal-token.md`에 있다. 유저 서비스 식별자는 `auth`를 유지한다
 (이미 `auth-*.yml`, `secret/auth`, 문서가 이 이름을 쓴다. 근거는 `docs/internal-token.md`). Spring 서비스의
@@ -68,7 +68,7 @@
 `secret.json` 예시 (notification):
 
 ```json
-{"sms": {"apiKey": "...", "apiSecret": "..."}, "discord": {"participantNumberUrl": "..."}}
+{"sms": {"apiKey": "...", "apiSecret": "...", "authInternalToken": "..."}, "discord": {"participantNumberUrl": "..."}}
 ```
 
 **1. 경로에 값이 아직 없을 때 (처음 만들 때): `put`**
@@ -202,9 +202,10 @@ spring:
 - `gateway-*.yml`의 `routing`은 `gateway-local.yml`을 그대로 복사했다. 유저 서비스 prefix 4개(`/auth`,
   `/admin`, `/trainee`, `/participant`)는 Expo-User-Server가 하나의 `expo-user-server`로 등록되므로 모두
   `expo-user-server`로 보낸다 (#6 참고).
-  SMS는 세 프로필 모두 `POST /sms`, `POST /sms/verify`, `GET /sms`만 공개하며 `/sms` 접두사 전체를
-  공개하지 않는다. `/sms`는 `expo-notification-server`로 라우팅한다 (#26).
-  `rateLimit.sms`는 IP별 세 SMS 경로 합산 60초에 10건이고, 기본 500건/60초와 설문 제출
+  SMS는 세 프로필 모두 `POST /sms`, `POST /sms/verify`만 공개하며 `/sms` 접두사 전체를
+  공개하지 않는다. `/sms`는 `expo-notification-server`로 라우팅한다 (#26). deprecated `GET /sms`는
+  공개 목록에서 뺐다(#138). Expo-Android가 아직 `GET /sms`로 인증번호를 확인하면 401을 받는다.
+  `rateLimit.sms`는 IP별 공개 SMS 경로 합산 60초에 10건이고, 기본 500건/60초와 설문 제출
   300건/60초 제한도 함께 유지한다. Gateway는 `/sms` 및 `/sms/*` 요청을 SMS 예산에 포함하므로
   인증에서 거부되는 SMS 요청도 예산을 소비한다. Gateway의 기본 메모리 저장소는 인스턴스별이며
   재시작하면 초기화된다. 여러 인스턴스의 합산 제한이나 알림 서버의 번호별/전체 시간당 제한을
@@ -343,6 +344,9 @@ BFF 주소 하나로 보이고(develop은 `TRUSTED_PROXY_HOPS`가 있을 때만 
 상한(`sms.authMaxSendCountPerHour` 300/UTC 시간, 600초로 환산 50)에 맞췄다. 한 IP가 이보다 많이 보내도 Notification이
 막으므로 IP 예산을 그 이상 올려도 발송량은 늘지 않는다. 유료 SMS 비용 방어는 Notification(Redis 원자 연산)이 한다:
 번호별 `authMaxSendCount` 5건/`authCodeTtlSeconds` 180초, 검증 시도 번호별 5회, 서비스 전체 시간당 300건.
+User가 `X-Internal-Token`(Vault `secret/notification`의 `sms.authInternalToken`과 같은 값)을 붙여 부르는 요청은
+공개 버킷과 따로 `sms.authMaxInternalSendCountPerHour`(300)로 센다(Expo-Notification-Server#80, #138). User 연동
+(Expo-User-Server#178)이 배포되면 공개 상한 `authMaxSendCountPerHour`를 관리자 가입 규모(예: 50~100)로 낮춘다.
 User 서버는 번호 형식(`^01\d{8,9}$`)과 박람회 존재만 확인하고 자체 제한은 없다. 이 값들은 `notification-*.yml`에서
 오며 런타임 환경변수(`SMS_AUTH_MAX_SEND_COUNT*`)가 덮을 수 있다(운영 값 미확인).
 한계: 한 IP가 서비스 전체 시간당 상한을 혼자 다 쓸 수 있어, 남용 시 그 시간 동안 모든 참가자의 인증번호 요청이
