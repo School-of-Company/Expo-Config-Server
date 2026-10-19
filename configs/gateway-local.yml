@@ -46,6 +46,7 @@ rateLimit:
     ttlSeconds: 600
     limit: 50
   # 로그인(POST /auth/signin)만 IP별로 제한한다(#83). 계정(닉네임) 단위 실패 잠금은 User 서버가 따로 건다.
+  # 운영에서는 Gateway trust proxy 1 때문에 Client가 사용자 IP를 넘겨도 req.ip가 Next 서버 IP라 관리자 로그인 전체가 이 한도를 함께 쓴다(docs/service-configs.md).
   signin:
     ttlSeconds: 600
     limit: 10

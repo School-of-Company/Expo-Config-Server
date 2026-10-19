@@ -219,9 +219,9 @@ spring:
   운영(main)에 배포된 뒤에 main으로 내보낸다.
   `rateLimit.signin`(IP별 600초에 10건, `POST /auth/signin`, #83)은 Gateway main(`c368878`)이 읽어 `signin`
   throttler로 건다. `verify-gateway.mjs`가 11번째 로그인(후행 슬래시·`%73ignin` 포함) 429와 다른 IP 통과를 점검한다.
-  계정 단위 실패 잠금은 User 서버(`SignInAttemptLimiter`)가 맡는다. 한도는 IP 기준이라 Client가 사용자 IP를 넘기지
-  않으면(`TRUSTED_PROXY_HOPS` 미설정) 모든 관리자 로그인이 BFF 주소 하나로 이 한도를 함께 쓴다. Client 배포 앞단 구성은
-  아직 확인되지 않았다.
+  계정 단위 실패 잠금은 User 서버(`SignInAttemptLimiter`)가 맡는다. 한도는 IP 기준이며, 운영에서는 Client가
+  `TRUSTED_PROXY_HOPS`로 사용자 IP를 넘겨도 모든 관리자 로그인이 Next 서버 IP 하나로 이 한도를 함께 쓴다(아래
+  "Gateway가 보는 클라이언트 IP").
   같은 문법을 쓰는 `GET /image/{id}`(#64)와 `GET /training/program/{expoId}`(#69)도 같은 조건이다. 연수 프로그램
   목록은 Expo-Client 참가자 연수 사전신청 제출이 토큰 없이 읽는다. #99는 세 프로필에
   `GET /standard/program/{expoId}`도 추가한다. Client develop `30336fc8` 및 main의 `ProgramApplyContainer`,
@@ -304,6 +304,20 @@ JWT는 스크립트가 만든 테스트 키로 서명하고, upstream은 Eureka 
 | 유효 JWT의 `GET /expo` | 200 (보호 경로 프록시 유지) |
 | 같은 IP의 `POST /participant-auth/code`(정확한 경로·후행 슬래시·`%63ode` 섞어 50건) | 6번째 이후도 통과(이전 5건 한도에서는 6번째 429), 51번째는 세 변형 모두 429(`Retry-After-participantAuthCode`), 차단 후 upstream 추가 0건 |
 | 다른 IP의 code, 제한된 IP의 verify·`POST /sms`·신청 등록 | 각각 200 |
+
+#### Gateway가 보는 클라이언트 IP (#83)
+
+Gateway의 IP별 한도(`rateLimit.*`)는 Express `req.ip` 기준이고, `trust proxy`는 Expo-Gateway `src/bootstrap/run.ts`에
+`1`로 고정돼 있다(설정 키가 아니다). 운영 경로는 브라우저 → Next(Expo-Client, 별도 EC2·pm2) → Apache(`a.glink.kr`
+vhost `/expo/` → `127.0.0.1:26120`) → Gateway다. Next는 `TRUSTED_PROXY_HOPS`가 있을 때만 `X-Forwarded-For: <사용자 IP>`를
+보내고, Apache는 이 헤더를 덮어쓰지 않고 Next 주소를 덧붙인다. 그래서 Gateway에 오는 값은 `<사용자 IP>, <Next IP>`이고,
+`trust proxy 1`은 Apache 한 홉만 믿으므로 `req.ip`는 맨 오른쪽 Next IP다. `TRUSTED_PROXY_HOPS`를 설정해도 사용자별로
+나뉘지 않는다(`proxy-addr`로 재현).
+
+`trust proxy`를 `2`로 올리면 사용자 IP가 잡히지만, `/expo/`는 외부에 열려 있어 누구나 `X-Forwarded-For`를 적어 Apache로
+직접 보내 한도를 피할 수 있다. 홉 수 대신 신뢰할 주소 목록(`'loopback, <Next 서버 IP>'`)을 쓰면 Next를 거친 요청만
+사용자 IP로 보고, 직접 들어온 요청은 실제 접속 IP로 남는다. 바꾸려면 Gateway 코드 변경과 Next 서버의 나가는 IP 확인이
+필요하다. 그 전까지 Client의 `TRUSTED_PROXY_HOPS`는 Gateway 한도에 영향이 없다.
 
 #### 행사장 공유 IP 예산 (#92)
 
