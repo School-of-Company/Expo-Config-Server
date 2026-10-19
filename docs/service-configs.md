@@ -22,7 +22,7 @@
 | `apply` | Expo-Application-Server (Spring) | 미사용 (환경변수) | 위와 같음 (DB `expo_application`) | `secret/apply` → `spring.datasource.password`, 내부 토큰(`application.internal-token`) |
 | `report` | Expo-Report-Server (Spring) | 미사용 (환경변수) | `spring.datasource.url/username`, `eureka.client` (Redis 없음) | `secret/report` → `spring.datasource.password`, `JWT_PUBLIC_KEY` |
 | `form` | Expo-Form-Server (NestJS) | 미사용 (환경변수) | `port`, `database.sslRejectUnauthorized`(prod만) | `secret/form` → `database.url` (접속 계정 포함 전체 URL), 내부 토큰(`INTERNAL_TOKEN`, `USER_SERVICE_INTERNAL_TOKEN`) |
-| `notification` | Expo-Notification-Server (NestJS) | 사용 (`CONFIG_SERVER_URL`이 있을 때만) | `port`, `kafka`, `redis`, `sms`(발신번호·발송 한도), `eureka.serviceUrl` (`local` 파일도 있음) | `secret/notification` → `sms.apiKey`, `sms.apiSecret`, `sms.authInternalToken`(32자 이상, User와 같은 값), `discord.participantNumberUrl`(선택), `redis.password`(쓰는 경우) |
+| `notification` | Expo-Notification-Server (NestJS) | 사용 (`CONFIG_SERVER_URL`이 있을 때만) | `port`, `kafka`, `redis`, `sms`(발신번호·발송 한도; 문의번호·QR 링크 템플릿은 주석 자리만), `eureka.serviceUrl` (`local` 파일도 있음) | `secret/notification` → `sms.apiKey`, `sms.apiSecret`, `sms.authInternalToken`(32자 이상, User와 같은 값), `discord.participantNumberUrl`(선택), `redis.password`(쓰는 경우) |
 
 서비스 간 내부 호출 토큰의 경로·키 이름과 발급 방법은 `docs/internal-token.md`에 있다. 유저 서비스 식별자는 `auth`를 유지한다
 (이미 `auth-*.yml`, `secret/auth`, 문서가 이 이름을 쓴다. 근거는 `docs/internal-token.md`). Spring 서비스의
@@ -48,6 +48,13 @@
   파일에 placeholder가 있으면 `SMS_FROM_STANDARD_NUMBER`/`SMS_FROM_TRAINEE_NUMBER`의 실제 번호를 덮어쓰기
   때문이다. 로컬에서는 이 두 환경변수나 Vault로 주고, 안 주면 알림 서버가 부팅할 때 실패한다. 같은 이유로
   `local`의 `port`는 config 서버 docker compose가 쓰는 3000이 아니라 3001이다.
+- `notification`의 `sms.contactStandardNumber`, `sms.contactTraineeNumber`, `sms.qrUrlTemplate`,
+  `sms.traineeQrUrlTemplate`은 필수다 (QR 템플릿은 Expo-Notification-Server#83부터). 없거나 비면 알림 서버가 부팅에
+  실패한다. 세 파일 모두 이 키를 **주석으로만** 둔다. 발신번호와 같은 이유로, placeholder를 실제 키로 두면
+  `SMS_CONTACT_STANDARD_NUMBER`/`SMS_CONTACT_TRAINEE_NUMBER`/`SMS_QR_URL_TEMPLATE`/`SMS_TRAINEE_QR_URL_TEMPLATE`의
+  실제 값을 덮어쓰고, `<Client 도메인>` 템플릿은 부팅 검증(비어 있지 않음)을 통과한 뒤 발송할 때마다 실패해 DLQ로 간다.
+  주석으로 두면 값이 없을 때 부팅 실패로 바로 드러난다. 각 환경 `.env`에 네 값이 있는지 먼저 확인하고, yml로 옮길
+  때는 확정된 값으로 주석을 해제한다. 템플릿 형식은 각 파일 주석과 Notification `docs/events-and-config.md`를 따른다.
 - DB 이름과 계정(`expo_user`, `expo` 등)은 각 서비스의 로컬 기본값을 따왔다. 실제 환경과 다르면 고친다.
 - **비밀 값은 yml에 쓰지 않는다.** 위 표의 Vault 값은 `secret/{식별자}`에 넣는다. 이 리포는 public이라
   한 번 커밋하면 지워도 공개된 것으로 봐야 한다. DB/Redis 호스트 같은 내부 주소를 public 리포에 올릴지도
