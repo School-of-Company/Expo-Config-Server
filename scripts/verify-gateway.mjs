@@ -283,7 +283,7 @@ for (const profile of ['local', 'dev', 'prod']) {
       assert.equal(config.routing.prefixes['/sms'], 'expo-notification-server');
       assert.deepEqual(
         config.publicPaths.filter((entry) => entry.includes('/sms') && entry !== 'GET /sms/v3/api-docs'),
-        ['POST /sms', 'POST /sms/verify', 'GET /sms'],
+        ['POST /sms', 'POST /sms/verify'],
       );
 
       const denied = [
@@ -292,6 +292,7 @@ for (const profile of ['local', 'dev', 'prod']) {
         ['DELETE', '/sms'],
         ['HEAD', '/sms'],
         ['OPTIONS', '/sms'],
+        ['GET', '/sms'],
         ['GET', '/sms/verify'],
         ['POST', '/sms/admin'],
         ['POST', '/sms/verify/more'],
@@ -306,7 +307,6 @@ for (const profile of ['local', 'dev', 'prod']) {
       const allowed = [
         ['POST', '/sms'],
         ['POST', '/sms/verify'],
-        ['GET', '/sms?probe=stub'],
       ];
       for (let i = 0; i < 10; i += 1) {
         const [method, path] = allowed[i % allowed.length];

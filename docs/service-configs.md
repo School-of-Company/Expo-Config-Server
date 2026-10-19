@@ -4,22 +4,35 @@
 사람이 "어느 파일의 무엇을 채우고, 무엇은 yml이 아니라 Vault에 넣어야 하는지"를 한 번에 볼 수 있게
 정리했다. 키 구성은 각 서비스 리포의 `application.yaml`/`.env.example`을 기준으로 잡았다.
 
+> **현재 실제로 config 서버를 읽는 서비스는 Gateway(필수)와 Notification(`CONFIG_SERVER_URL`이 있을 때만)뿐이다**
+> (각 리포 `develop` 기준, 2026-10-20 확인). Form과 Spring 서비스(User·Expo·Application·Report·Attendance)는 config 서버를
+> 호출하지 않고 환경변수(`.env`)로만 설정을 받는다. Spring 서비스는 `build.gradle.kts`에 `spring-cloud-starter-config`가
+> 없고 `application.yaml`에 `spring.config.import: configserver:`도 없다 (`optional:file:.env[.properties]`만 있다).
+> 그래서 아래 표에서 `form`, `auth`, `expo`, `apply`, `report`의 yml과 Vault 값은 **아직 서비스에 반영되지 않는다**.
+> 이 서비스들의 값을 바꾸려면 config 서버가 아니라 각 서비스의 환경변수를 바꾼다. 소비 서비스별 현황은
+> `docs/config-access-auth.md`의 "소비 서비스" 표가 기준이다.
+
 ## 서비스별 구성
 
-| 식별자 | 서비스 리포 | yml에 있는 키 | Vault에 넣을 값 |
-|---|---|---|---|
-| `gateway` | Expo-Gateway (NestJS) | `port`, `eureka.serviceUrl`, `routing`, `rateLimit`, `publicPaths`, `docs`(dev만). `cors`는 넣지 않음 | `secret/gateway` → `jwt.publicKey` |
-| `auth` | Expo-User-Server (Spring) | `spring.datasource.url/username`, `spring.data.redis`, `eureka.client` | `secret/auth` → `spring.datasource.password`, `jwt.privateKey`, 내부 토큰(`internal.token`, `clients.expo.internal-token`) |
-| `expo` | Expo-Expo-Server (Spring) | 위와 같음 (DB `expo`) | `secret/expo` → `spring.datasource.password`, `JWT_PUBLIC_KEY`, 내부 토큰(`EXPO_INTERNAL_TOKEN`, `expo.*.internal-token`) |
-| `apply` | Expo-Application-Server (Spring) | 위와 같음 (DB `expo_application`) | `secret/apply` → `spring.datasource.password`, 내부 토큰(`application.internal-token`) |
-| `report` | Expo-Report-Server (Spring) | `spring.datasource.url/username`, `eureka.client` (Redis 없음) | `secret/report` → `spring.datasource.password`, `JWT_PUBLIC_KEY` |
-| `form` | Expo-Form-Server (NestJS) | `port`, `database.sslRejectUnauthorized`(prod만) | `secret/form` → `database.url` (접속 계정 포함 전체 URL), 내부 토큰(`INTERNAL_TOKEN`, `USER_SERVICE_INTERNAL_TOKEN`) |
-| `notification` | Expo-Notification-Server (NestJS) | `port`, `kafka`, `redis`, `sms`(발신번호·발송 한도), `eureka.serviceUrl` (`local` 파일도 있음) | `secret/notification` → `sms.apiKey`, `sms.apiSecret`, `discord.participantNumberUrl`(선택), `redis.password`(쓰는 경우) |
+| 식별자 | 서비스 리포 | 지금 config 서버 사용 | yml에 있는 키 | Vault에 넣을 값 |
+|---|---|---|---|---|
+| `gateway` | Expo-Gateway (NestJS) | 사용 (필수) | `port`, `eureka.serviceUrl`, `routing`, `rateLimit`, `publicPaths`, `docs`(dev만). `cors`는 넣지 않음 | `secret/gateway` → `jwt.publicKey` |
+| `auth` | Expo-User-Server (Spring) | 미사용 (환경변수) | `spring.datasource.url/username`, `spring.data.redis`, `eureka.client` | `secret/auth` → `spring.datasource.password`, `jwt.privateKey`, 내부 토큰(`internal.token`, `clients.expo.internal-token`) |
+| `expo` | Expo-Expo-Server (Spring) | 미사용 (환경변수) | 위와 같음 (DB `expo`) | `secret/expo` → `spring.datasource.password`, `JWT_PUBLIC_KEY`, 내부 토큰(`EXPO_INTERNAL_TOKEN`, `expo.*.internal-token`) |
+| `apply` | Expo-Application-Server (Spring) | 미사용 (환경변수) | 위와 같음 (DB `expo_application`) | `secret/apply` → `spring.datasource.password`, 내부 토큰(`application.internal-token`) |
+| `report` | Expo-Report-Server (Spring) | 미사용 (환경변수) | `spring.datasource.url/username`, `eureka.client` (Redis 없음) | `secret/report` → `spring.datasource.password`, `JWT_PUBLIC_KEY` |
+| `form` | Expo-Form-Server (NestJS) | 미사용 (환경변수) | `port`, `database.sslRejectUnauthorized`(prod만) | `secret/form` → `database.url` (접속 계정 포함 전체 URL), 내부 토큰(`INTERNAL_TOKEN`, `USER_SERVICE_INTERNAL_TOKEN`) |
+| `notification` | Expo-Notification-Server (NestJS) | 사용 (`CONFIG_SERVER_URL`이 있을 때만) | `port`, `kafka`, `redis`, `sms`(발신번호·발송 한도; 문의번호·QR 링크 템플릿은 주석 자리만), `eureka.serviceUrl` (`local` 파일도 있음) | `secret/notification` → `sms.apiKey`, `sms.apiSecret`, `sms.authInternalToken`(32자 이상, User와 같은 값), `discord.participantNumberUrl`(선택), `redis.password`(쓰는 경우) |
 
 서비스 간 내부 호출 토큰의 경로·키 이름과 발급 방법은 `docs/internal-token.md`에 있다. 유저 서비스 식별자는 `auth`를 유지한다
 (이미 `auth-*.yml`, `secret/auth`, 문서가 이 이름을 쓴다. 근거는 `docs/internal-token.md`). Spring 서비스의
 키는 Spring 속성 이름 그대로 중첩해 두었다. 나중에 Spring 호환 엔드포인트를 붙일 때 평탄화만 하면 되게
 하려는 것이고, 그 결정 전까지는 이 구조가 확정은 아니다.
+
+`auth`, `expo`, `apply`, `report`, `form`의 yml과 Vault 값은 소비 서비스가 붙기 전까지 읽히지 않는다. 그 사이 Vault
+`secret/auth` 등에 실제 비밀(JWT 개인키, DB 비밀번호, 내부 토큰)을 넣어 두면 쓰이지 않는 곳에 비밀만 늘어나므로,
+해당 서비스를 config 서버에 붙이는 시점에 맞춰 넣는다. 이미 넣은 값이 있다면 서비스가 실제로 쓰는 환경변수와
+같은지 확인하고, 쓰이지 않으면 지울지 정한다 (정리 여부는 이 문서가 아니라 별도 이슈에서 정한다).
 
 ## 값 채우기
 
@@ -35,12 +48,20 @@
   파일에 placeholder가 있으면 `SMS_FROM_STANDARD_NUMBER`/`SMS_FROM_TRAINEE_NUMBER`의 실제 번호를 덮어쓰기
   때문이다. 로컬에서는 이 두 환경변수나 Vault로 주고, 안 주면 알림 서버가 부팅할 때 실패한다. 같은 이유로
   `local`의 `port`는 config 서버 docker compose가 쓰는 3000이 아니라 3001이다.
+- `notification`의 `sms.contactStandardNumber`, `sms.contactTraineeNumber`, `sms.qrUrlTemplate`,
+  `sms.traineeQrUrlTemplate`은 필수다 (QR 템플릿은 Expo-Notification-Server#83부터). 없거나 비면 알림 서버가 부팅에
+  실패한다. 세 파일 모두 이 키를 **주석으로만** 둔다. 발신번호와 같은 이유로, placeholder를 실제 키로 두면
+  `SMS_CONTACT_STANDARD_NUMBER`/`SMS_CONTACT_TRAINEE_NUMBER`/`SMS_QR_URL_TEMPLATE`/`SMS_TRAINEE_QR_URL_TEMPLATE`의
+  실제 값을 덮어쓰고, `<Client 도메인>` 템플릿은 부팅 검증(비어 있지 않음)을 통과한 뒤 발송할 때마다 실패해 DLQ로 간다.
+  주석으로 두면 값이 없을 때 부팅 실패로 바로 드러난다. 각 환경 `.env`에 네 값이 있는지 먼저 확인하고, yml로 옮길
+  때는 확정된 값으로 주석을 해제한다. 템플릿 형식은 각 파일 주석과 Notification `docs/events-and-config.md`를 따른다.
 - DB 이름과 계정(`expo_user`, `expo` 등)은 각 서비스의 로컬 기본값을 따왔다. 실제 환경과 다르면 고친다.
 - **비밀 값은 yml에 쓰지 않는다.** 위 표의 Vault 값은 `secret/{식별자}`에 넣는다. 이 리포는 public이라
   한 번 커밋하면 지워도 공개된 것으로 봐야 한다. DB/Redis 호스트 같은 내부 주소를 public 리포에 올릴지도
   먼저 정한다.
 - 반영 순서: 브랜치에서 수정 → `develop`으로 PR → config 서버 이미지 재배포 → 각 서비스 재시작
-  (config 서버는 `configs/`를 이미지에 담고, 서비스는 부팅 시에만 설정을 읽는다).
+  (config 서버는 `configs/`를 이미지에 담고, 서비스는 부팅 시에만 설정을 읽는다). 위 안내대로 지금은 Gateway와
+  Notification에만 해당한다.
 
 ## Vault에 시크릿 넣기
 
@@ -54,7 +75,7 @@
 `secret.json` 예시 (notification):
 
 ```json
-{"sms": {"apiKey": "...", "apiSecret": "..."}, "discord": {"participantNumberUrl": "..."}}
+{"sms": {"apiKey": "...", "apiSecret": "...", "authInternalToken": "..."}, "discord": {"participantNumberUrl": "..."}}
 ```
 
 **1. 경로에 값이 아직 없을 때 (처음 만들 때): `put`**
@@ -83,7 +104,7 @@ vault kv patch -mount=secret notification - < secret.json
 
 Spring Cloud Config Client는 `propertySources`가 든 Environment JSON을 기대해서 `/configs/...`(중첩 JSON)에는
 그대로 붙지 않는다. 그래서 같은 병합 결과를 Spring 형식으로 돌려주는 경로를 따로 둔다.
-`/configs/:service/:profile`는 Gateway·Form이 쓰는 계약이라 바꾸지 않았다.
+`/configs/:service/:profile`는 Gateway·Notification이 쓰는 계약이라 바꾸지 않았다.
 
 | 경로 | 응답 |
 |---|---|
@@ -103,7 +124,8 @@ Spring Cloud Config Client는 `propertySources`가 든 Environment JSON을 기�
   (빈 설정으로 내려주면 서비스가 비밀 값 없이 기동하므로 실패로 돌려준다)
 - **프로파일은 하나만** 받는다. `dev,local` 같은 여러 개는 식별자 검증에서 `400`이다.
 
-Spring 서비스 쪽 설정 (예: 유저 서비스):
+Spring 서비스 쪽 설정 (예: 유저 서비스). **현재 어떤 Spring 서비스도 이 설정을 쓰지 않는다.** 붙이려면
+`spring-cloud-starter-config` 의존성도 함께 추가해야 한다 (앞으로 붙일 때의 예시):
 
 ```yaml
 spring:
@@ -187,9 +209,10 @@ spring:
 - `gateway-*.yml`의 `routing`은 `gateway-local.yml`을 그대로 복사했다. 유저 서비스 prefix 4개(`/auth`,
   `/admin`, `/trainee`, `/participant`)는 Expo-User-Server가 하나의 `expo-user-server`로 등록되므로 모두
   `expo-user-server`로 보낸다 (#6 참고).
-  SMS는 세 프로필 모두 `POST /sms`, `POST /sms/verify`, `GET /sms`만 공개하며 `/sms` 접두사 전체를
-  공개하지 않는다. `/sms`는 `expo-notification-server`로 라우팅한다 (#26).
-  `rateLimit.sms`는 IP별 세 SMS 경로 합산 60초에 10건이고, 기본 500건/60초와 설문 제출
+  SMS는 세 프로필 모두 `POST /sms`, `POST /sms/verify`만 공개하며 `/sms` 접두사 전체를
+  공개하지 않는다. `/sms`는 `expo-notification-server`로 라우팅한다 (#26). deprecated `GET /sms`는
+  공개 목록에서 뺐다(#138). Expo-Android가 아직 `GET /sms`로 인증번호를 확인하면 401을 받는다.
+  `rateLimit.sms`는 IP별 공개 SMS 경로 합산 60초에 10건이고, 기본 500건/60초와 설문 제출
   300건/60초 제한도 함께 유지한다. Gateway는 `/sms` 및 `/sms/*` 요청을 SMS 예산에 포함하므로
   인증에서 거부되는 SMS 요청도 예산을 소비한다. Gateway의 기본 메모리 저장소는 인스턴스별이며
   재시작하면 초기화된다. 여러 인스턴스의 합산 제한이나 알림 서버의 번호별/전체 시간당 제한을
@@ -328,6 +351,9 @@ BFF 주소 하나로 보이고(develop은 `TRUSTED_PROXY_HOPS`가 있을 때만 
 상한(`sms.authMaxSendCountPerHour` 300/UTC 시간, 600초로 환산 50)에 맞췄다. 한 IP가 이보다 많이 보내도 Notification이
 막으므로 IP 예산을 그 이상 올려도 발송량은 늘지 않는다. 유료 SMS 비용 방어는 Notification(Redis 원자 연산)이 한다:
 번호별 `authMaxSendCount` 5건/`authCodeTtlSeconds` 180초, 검증 시도 번호별 5회, 서비스 전체 시간당 300건.
+User가 `X-Internal-Token`(Vault `secret/notification`의 `sms.authInternalToken`과 같은 값)을 붙여 부르는 요청은
+공개 버킷과 따로 `sms.authMaxInternalSendCountPerHour`(300)로 센다(Expo-Notification-Server#80, #138). User 연동
+(Expo-User-Server#178)이 배포되면 공개 상한 `authMaxSendCountPerHour`를 관리자 가입 규모(예: 50~100)로 낮춘다.
 User 서버는 번호 형식(`^01\d{8,9}$`)과 박람회 존재만 확인하고 자체 제한은 없다. 이 값들은 `notification-*.yml`에서
 오며 런타임 환경변수(`SMS_AUTH_MAX_SEND_COUNT*`)가 덮을 수 있다(운영 값 미확인).
 한계: 한 IP가 서비스 전체 시간당 상한을 혼자 다 쓸 수 있어, 남용 시 그 시간 동안 모든 참가자의 인증번호 요청이
