@@ -110,7 +110,7 @@ describe('configs/ files', () => {
         'GET /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/participants',
         'GET /application/expos/{expoId}/participants/{participantId}/qr',
         'GET /application/expos/{expoId}/my-applications',
-        'POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING}/{applicationId}/cancellation',
+        'POST /application/expos/{expoId}/my-applications/{type:PREREGISTER|STANDARD|TRAINING|FIELD}/{applicationId}/cancellation',
         'POST /application/expos/{expoId}/my-applications/PREREGISTER/{applicationId}/companions',
         'GET /application/expos/{expoId}/my-applications/preregister-waitlist',
         'GET /application/expos/{expoId}/my-applications/preregister-waitlists',
@@ -119,6 +119,8 @@ describe('configs/ files', () => {
         'GET /application/expos/{expoId}/my-applications/promotion-offers',
         'POST /application/expos/{expoId}/my-applications/promotion-offers/{offerId}/acceptance',
         'POST /application/expos/{expoId}/my-applications/promotion-offers/{offerId}/decline',
+        'GET /application/expos/{expoId}/field-visits',
+        'POST /application/expos/{expoId}/field-visits',
         'POST /application/expos/{expoId}/page-views',
       ]);
       // 실제 프론트 origin 근거가 없어 넣지 않는다. 넣으면 목록 밖 Origin의 쓰기가 403이 된다.
