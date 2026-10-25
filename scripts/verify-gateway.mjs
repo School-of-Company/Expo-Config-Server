@@ -384,6 +384,9 @@ for (const profile of ['local', 'dev', 'prod']) {
         ['APPLICATION', 'GET', `/application/expos/${expo}/my-applications/promotion-offers`],
         ['APPLICATION', 'POST', `/application/expos/${expo}/my-applications/promotion-offers/${randomUUID()}/acceptance`],
         ['APPLICATION', 'POST', `/application/expos/${expo}/my-applications/promotion-offers/${randomUUID()}/decline`],
+        ['APPLICATION', 'GET', `/application/expos/${expo}/field-visits`],
+        ['APPLICATION', 'POST', `/application/expos/${expo}/field-visits`],
+        ['APPLICATION', 'POST', `/application/expos/${expo}/my-applications/FIELD/42/cancellation`],
       ];
       for (const [service, method, path] of opened) {
         const response = await call(method, path, '203.0.113.30', {
@@ -414,6 +417,10 @@ for (const profile of ['local', 'dev', 'prod']) {
         ['GET', `/application/expos/${expo}/program-sessions/STANDARD/3/onsite-applications`],
         ['POST', `/application/expos/${expo}/program-sessions/OTHER/3/onsite-application-batches`],
         ['POST', `/application/expos/${expo}/my-applications/FOO/42/cancellation`],
+        ['DELETE', `/application/expos/${expo}/my-applications/FIELD/42/cancellation`],
+        ['PUT', `/application/expos/${expo}/field-visits`],
+        ['DELETE', `/application/expos/${expo}/field-visits`],
+        ['GET', `/application/expos/${expo}/field-visits/admin`],
         ['DELETE', `/application/expos/${expo}/my-applications/PREREGISTER/42/cancellation`],
         ['POST', `/application/expos/${expo}/my-applications/preregister-waitlist`],
         ['GET', `/application/expos/${expo}/my-applications/preregister-waitlist/cancellation`],
