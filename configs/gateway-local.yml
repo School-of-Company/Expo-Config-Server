@@ -101,6 +101,9 @@ publicPaths:
   - POST /application/field/{expoId}
   - POST /application/field/standard/{expoId}
   - GET /application/expos/{expoId}/preregister-sessions/{sessionId}/capacity
+  # 프로그램·연수 회차 공개 정원 요약(Expo-Application-Server#331): 공개 정원 현황판(Expo-Client#886)이 로그인 없이 회차별 잔여 정원을 읽는다.
+  # GET·이 경로만 정확히 연다. 같은 접두사의 .../{programId}/participants 등 다른 경로와 쓰기는 각자 항목이나 JWT 검사를 따른다.
+  - GET /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/seats
   - GET /application/program-session-csrf
   - POST /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/applications
   - POST /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/application-batches
