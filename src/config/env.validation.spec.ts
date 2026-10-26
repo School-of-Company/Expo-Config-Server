@@ -14,6 +14,7 @@ describe('validateEnv', () => {
       CONFIG_DIR: '/tmp/configs',
       CONFIG_CLIENT_CREDENTIALS: undefined,
       VAULT_TIMEOUT_MS: undefined,
+      HTTP_ACCESS_LOG_ENABLED: true,
     });
   });
 
@@ -29,6 +30,7 @@ describe('validateEnv', () => {
       CONFIG_DIR: undefined,
       CONFIG_CLIENT_CREDENTIALS: undefined,
       VAULT_TIMEOUT_MS: undefined,
+      HTTP_ACCESS_LOG_ENABLED: true,
     });
   });
 
@@ -109,5 +111,21 @@ describe('validateEnv', () => {
         VAULT_TIMEOUT_MS: '',
       }).VAULT_TIMEOUT_MS,
     ).toBeUndefined();
+  });
+
+  it.each([
+    [undefined, true],
+    ['', true],
+    ['true', true],
+    ['false', false],
+    [' FALSE ', false],
+  ])('HTTP_ACCESS_LOG_ENABLED %p → %p', (value, expected) => {
+    expect(
+      validateEnv({
+        VAULT_ADDR: 'http://vault.local',
+        VAULT_TOKEN: 'token',
+        HTTP_ACCESS_LOG_ENABLED: value,
+      }).HTTP_ACCESS_LOG_ENABLED,
+    ).toBe(expected);
   });
 });
