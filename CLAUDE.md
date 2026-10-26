@@ -157,7 +157,12 @@ The Expo log standard, shared by every service (Spring and Nest) so the shared L
 - `LOG_LEVEL` (default `info`). With `NODE_ENV=local` (or `PROFILE=local`) stdout is also mirrored to
   `${EXPO_LOG_DIR:-~/.expo/logs}/expo-config-server/app.log` for the local Loki file tail. Elsewhere
   stdout only (the container runtime captures it); add no log file settings there.
-- No request/access log. Never log `VAULT_TOKEN`, Basic auth passwords, or any served config value.
+- Access log: `src/logging/http-access-log.middleware.ts`, registered in `main.ts` before routing, writes one
+  line per request with module `HttpAccess`: `GET /configs/:service/:profile status: 200 (12ms)` (matched route template,
+  else the raw path without query, max 200 chars). INFO <400, WARN 4xx, ERROR 5xx and 499 (client closed first).
+  `/health`, `/metrics`, `/actuator`, `/docs` are skipped. `HTTP_ACCESS_LOG_ENABLED=false` turns it off (default on).
+  Never add query strings, headers, cookies, or bodies to it.
+- Never log `VAULT_TOKEN`, Basic auth passwords, or any served config value.
 
 ---
 

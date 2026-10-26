@@ -5,6 +5,8 @@ export interface AppEnv {
   /** 서비스 식별자 → Basic 인증 비밀번호. 없으면 설정 API 인증을 끈다 (#54, docs/config-access-auth.md) */
   CONFIG_CLIENT_CREDENTIALS?: Record<string, string>;
   VAULT_TIMEOUT_MS?: number;
+  /** 요청마다 액세스 로그 한 줄을 남길지. 기본 켜짐, `false`일 때만 끈다 */
+  HTTP_ACCESS_LOG_ENABLED: boolean;
 }
 
 /** 서비스 식별자·프로파일 형식. 파일 경로와 Vault 경로에 그대로 들어가므로 경로 탐색을 막는 화이트리스트다. */
@@ -81,5 +83,8 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
       config.CONFIG_CLIENT_CREDENTIALS,
     ),
     VAULT_TIMEOUT_MS: vaultTimeoutMs,
+    HTTP_ACCESS_LOG_ENABLED:
+      typeof config.HTTP_ACCESS_LOG_ENABLED !== 'string' ||
+      config.HTTP_ACCESS_LOG_ENABLED.trim().toLowerCase() !== 'false',
   };
 }

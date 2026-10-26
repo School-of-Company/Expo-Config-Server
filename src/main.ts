@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { installHttpAccessLog } from './logging/http-access-log.middleware';
 import { createPino, JsonLogger, readLogEnv } from './logging/json-logger';
 
 Logger.overrideLogger(
@@ -13,6 +14,7 @@ async function bootstrap() {
   // logger is installed so a missing variable is logged as JSON too.
   const { AppModule } = await import('./app.module');
   const app = await NestFactory.create(AppModule);
+  installHttpAccessLog(app);
   await app.listen(process.env.PORT ?? 3000);
 }
 
