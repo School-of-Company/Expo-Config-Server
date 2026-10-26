@@ -102,6 +102,7 @@ describe('configs/ files', () => {
         'POST /application/field/{expoId}',
         'POST /application/field/standard/{expoId}',
         'GET /application/expos/{expoId}/preregister-sessions/{sessionId}/capacity',
+        'GET /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/seats',
         'GET /application/program-session-csrf',
         'POST /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/applications',
         'POST /application/expos/{expoId}/program-sessions/{programType:STANDARD|TRAINING}/{programId}/application-batches',
