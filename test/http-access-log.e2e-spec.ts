@@ -48,7 +48,9 @@ describe('HTTP access log (e2e)', () => {
 
     expect(lines()).toEqual([
       expect.stringMatching(
-        new RegExp(`^GET /configs/:service/:profile ${res.status} \\d+ms$`),
+        new RegExp(
+          `^GET /configs/:service/:profile status: ${res.status} \\(\\d+ms\\)$`,
+        ),
       ),
     ]);
   });
@@ -57,6 +59,8 @@ describe('HTTP access log (e2e)', () => {
     await request(app.getHttpServer()).get('/nope?token=abc').expect(404);
 
     expect(logger.warn).toHaveBeenCalledTimes(1);
-    expect(logger.warn.mock.calls[0][0]).toMatch(/^GET \/nope 404 \d+ms$/);
+    expect(logger.warn.mock.calls[0][0]).toMatch(
+      /^GET \/nope status: 404 \(\d+ms\)$/,
+    );
   });
 });

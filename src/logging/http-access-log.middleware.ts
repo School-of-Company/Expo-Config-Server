@@ -12,7 +12,7 @@ const SKIPPED_PREFIXES = ['/health', '/metrics', '/actuator', '/docs'];
 type AccessLogger = Pick<Logger, 'log' | 'warn' | 'error'>;
 
 /**
- * 요청마다 응답이 끝난 시점에 한 줄을 남긴다: `GET /configs/:service/:profile 200 12ms`.
+ * 요청마다 응답이 끝난 시점에 한 줄을 남긴다: `GET /configs/:service/:profile status: 200 (12ms)`.
  *
  * 경로는 매칭된 라우트 템플릿을 쓰고, 매칭되지 않았으면 쿼리를 뗀 원문 경로를 쓴다. 응답 본문에는 Vault 비밀이
  * 섞인 설정 값이 실리므로 헤더(Basic 인증)·쿠키·본문은 절대 남기지 않는다. 레벨은 4xx가 WARN, 5xx와 499가 ERROR다.
@@ -33,7 +33,7 @@ export function createHttpAccessLogMiddleware(
       if (logged) return;
       logged = true;
       const ms = Math.round(Number(process.hrtime.bigint() - startedAt) / 1e6);
-      const message = `${request.method} ${loggablePath(request)} ${status} ${ms}ms`;
+      const message = `${request.method} ${loggablePath(request)} status: ${status} (${ms}ms)`;
       if (status === CLIENT_CLOSED_STATUS || status >= 500) {
         logger.error(message);
       } else if (status >= 400) {

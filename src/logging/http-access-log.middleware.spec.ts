@@ -49,7 +49,7 @@ describe('createHttpAccessLogMiddleware', () => {
     expect(next).toHaveBeenCalledTimes(1);
     expect(logger.log).toHaveBeenCalledTimes(1);
     expect(logger.log.mock.calls[0][0]).toMatch(
-      /^GET \/configs\/:service\/:profile 200 \d+ms$/,
+      /^GET \/configs\/:service\/:profile status: 200 \(\d+ms\)$/,
     );
   });
 
@@ -73,7 +73,7 @@ describe('createHttpAccessLogMiddleware', () => {
     response.emit('finish');
 
     expect(logger.error).toHaveBeenCalledTimes(1);
-    expect(logger.error.mock.calls[0][0]).toMatch(/ 499 \d+ms$/);
+    expect(logger.error.mock.calls[0][0]).toMatch(/ status: 499 \(\d+ms\)$/);
   });
 
   it('매칭된 라우트가 없으면 쿼리를 뗀 경로를 길이 제한해 남긴다', () => {
@@ -85,7 +85,7 @@ describe('createHttpAccessLogMiddleware', () => {
     response.emit('finish');
 
     const message = String(logger.warn.mock.calls[0][0]);
-    expect(message).toMatch(/^GET \/nope 404 \d+ms$/);
+    expect(message).toMatch(/^GET \/nope status: 404 \(\d+ms\)$/);
     expect(message).not.toContain('secret');
 
     const long = `/${'a'.repeat(300)}`;
@@ -93,7 +93,7 @@ describe('createHttpAccessLogMiddleware', () => {
     truncated.response.statusCode = 404;
     truncated.response.emit('finish');
     expect(String(truncated.logger.warn.mock.calls[0][0])).toContain(
-      `/${'a'.repeat(199)}… 404`,
+      `/${'a'.repeat(199)}… status: 404`,
     );
   });
 
