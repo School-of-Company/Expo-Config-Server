@@ -279,6 +279,14 @@ spring:
   응답자를 확인하고 같은 응답자의 활성 제출을 한 건으로 막는다. 이 두 경로만 열리고 다른 메서드, 다른 참여자군 값,
   하위 경로, `/surveys` 쓰기는 계속 JWT 검사를 거친다. `rateLimit.survey`는 Gateway가 `POST /surveys/answer/public/*`만
   세므로 이 두 경로에는 기본 IP 제한(60초 500건)만 걸린다.
+- 설문 기념품 수령(#160, Expo-Form-Server#239): 세 프로필 모두 `POST /surveys/{expoId}/gift-pickup/status`,
+  `POST /surveys/{expoId}/gift-pickup/confirm`만 연다. Expo-Client(#899)가 공개 설문 제출 화면에서 `clientInstance`로 토큰
+  없이 부르고, 폼 서버 `SurveyGiftController`는 가드 없이 바디의 응답별 토큰(제출 응답으로 한 번만 발급, 서버엔 해시만)과
+  직원 PIN으로 확인한다. 직원 PIN 설정·조회 `PUT·GET /surveys/{expoId}/gift-pin`은 관리자 전용이라 열지 않는다(Client도
+  `clientTokenInstance`로 부른다). 다른 메서드·하위·유사 경로는 계속 JWT 검사를 거친다.
+  PIN 대입: 폼 서버는 토큰별 5회 오입력 시 300초만 잠그고, 익명 제출로 토큰을 새로 만들 수 있어 토큰 잠금만으로는 막히지
+  않는다. `rateLimit.survey`는 `POST /surveys/answer/public/*`만 세므로 `confirm`에는 기본 IP 제한(60초 500건)만 걸린다.
+  `confirm`만 세는 키는 Gateway에 없어 설정으로 추가하지 않았고 후속(Expo-Gateway#91)으로 남긴다. Config 반영 후 Gateway 재시작이 필요하다.
 - `application-{local,dev,prod}.yml`의 `port: 3000`은 초기 placeholder인데 전 서비스에 병합된다 (Spring
   서비스에서는 쓰이지 않는 키). 정리가 필요하다.
 - Report 서비스의 `application.yaml`은 `spring.security.user.password: ${LOCAL_SECURITY_PASSWORD}`를
