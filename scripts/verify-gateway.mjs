@@ -566,6 +566,82 @@ for (const profile of ['local', 'dev', 'prod']) {
   );
 
   test(
+    `${profile}: real Config Server -> Gateway bootstrap -> survey gift pickup stubs`,
+    { timeout: 30000 },
+    async (t) => {
+      const { config, hits, call } = await bootStack(t, profile);
+      assert.deepEqual(config.rateLimit, RATE_LIMIT);
+
+      // Gift pickup status/confirm (#160, Expo-Form-Server#239): the submitter's phone calls them without
+      // login; the token and staff PIN travel only in the body. The stub body here is a probe, not a token/PIN.
+      const expo = randomUUID();
+      const opened = [
+        `/surveys/${expo}/gift-pickup/status`,
+        `/surveys/${expo}/gift-pickup/confirm`,
+        `/surveys/${expo}/gift-pickup/confirm/`,
+      ];
+      for (const path of opened) {
+        const response = await call('POST', path, '203.0.113.55');
+        assert.equal(response.status, 200, `POST ${path} (upstream hits ${hits.length})`);
+        const hit = await response.json();
+        assert.deepEqual(
+          { app: hit.app, method: hit.method, url: hit.url, body: hit.body },
+          { app: 'EXPO-FORM-SERVER', method: 'POST', url: path, body: JSON.stringify({ probe: 'stub-only' }) },
+        );
+      }
+      const before = hits.length;
+      const denied = [
+        // The staff PIN is set/read by admins only.
+        ['GET', `/surveys/${expo}/gift-pin`],
+        ['PUT', `/surveys/${expo}/gift-pin`],
+        ['POST', `/surveys/${expo}/gift-pin`],
+        ['GET', `/surveys/${expo}/gift-pickup/status`],
+        ['GET', `/surveys/${expo}/gift-pickup/confirm`],
+        ['PUT', `/surveys/${expo}/gift-pickup/confirm`],
+        ['PATCH', `/surveys/${expo}/gift-pickup/confirm`],
+        ['DELETE', `/surveys/${expo}/gift-pickup/status`],
+        ['POST', `/surveys/${expo}/gift-pickup/other`],
+        ['POST', `/surveys/${expo}/gift-pickup`],
+        ['POST', `/surveys/${expo}/gift-pickup/status/extra`],
+        ['POST', `/surveys/${expo}/gift-pickup/%73tatus`],
+        ['POST', `/surveys/${expo}/gift-pickup/confirm;x`],
+        ['POST', `/surveys/${expo}/gift-pickups/confirm`],
+        ['POST', '/surveys/abc/gift-pickup/confirm'],
+        ['POST', '/surveys/gift-pickup/status'],
+      ];
+      for (const [method, path] of denied) {
+        const response = await call(method, path, '203.0.113.56');
+        assert.equal(response.status, 401, `${method} ${path}`);
+        await response.arrayBuffer();
+      }
+      assert.equal(hits.length, before, 'Denied requests must not reach upstream');
+      const bearer = { Authorization: `Bearer ${accessToken()}` };
+      for (const method of ['GET', 'PUT']) {
+        const admin = await call(method, `/surveys/${expo}/gift-pin`, '203.0.113.56', bearer);
+        assert.equal(admin.status, 200, `${method} gift-pin with JWT still proxies`);
+        assert.equal((await admin.json()).app, 'EXPO-FORM-SERVER');
+      }
+
+      // rateLimit.survey covers only POST /surveys/answer/public/*: once it is spent, confirm from the same IP
+      // still passes, bounded only by the 500/60s default. A per-IP confirm budget needs Gateway code.
+      for (let i = 0; i < RATE_LIMIT.survey.limit; i += 1) {
+        const response = await call('POST', `/surveys/answer/public/${expo}`, '203.0.113.57');
+        assert.equal(response.status, 200, `public survey submit ${i + 1}`);
+        await response.arrayBuffer();
+      }
+      const limited = await call('POST', `/surveys/answer/public/${expo}`, '203.0.113.57');
+      assert.equal(limited.status, 429);
+      await limited.arrayBuffer();
+      const confirm = await call('POST', `/surveys/${expo}/gift-pickup/confirm`, '203.0.113.57');
+      assert.equal(confirm.status, 200, 'confirm is outside rateLimit.survey');
+      await confirm.arrayBuffer();
+      console.log(
+        `${profile}: ${opened.length} gift pickup status/confirm 200 (Form stub); ${denied.length} denied 401 (0 upstream); gift-pin GET/PUT with JWT 200; confirm after survey budget 429 still 200`,
+      );
+    },
+  );
+
+  test(
     `${profile}: real Config Server -> Gateway bootstrap -> application page-view stub`,
     { timeout: 30000 },
     async (t) => {

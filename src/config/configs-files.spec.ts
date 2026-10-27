@@ -290,7 +290,7 @@ describe('configs/ files', () => {
   );
 
   it.each(['local', 'dev', 'prod'])(
-    'opens only the survey read, participant answer submits and own-answer status reads, not survey writes, besides the public survey prefixes in gateway-%s',
+    'opens only the survey read, participant answer submits, own-answer status reads and gift pickup status/confirm, not survey writes or the gift PIN, besides the public survey prefixes in gateway-%s',
     async (profile) => {
       const config: unknown = yaml.load(
         await readFile(join(configsDir, `gateway-${profile}.yml`), 'utf-8'),
@@ -312,6 +312,8 @@ describe('configs/ files', () => {
         'POST /surveys/answer/trainee/{expoId}',
         'GET /surveys/answer/standard/{expoId}/me',
         'GET /surveys/answer/trainee/{expoId}/me',
+        'POST /surveys/{expoId}/gift-pickup/status',
+        'POST /surveys/{expoId}/gift-pickup/confirm',
       ]);
     },
   );
