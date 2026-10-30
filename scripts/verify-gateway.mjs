@@ -218,7 +218,7 @@ const RATE_LIMIT = {
   survey: { ttlSeconds: 60, limit: 300 },
   sms: { ttlSeconds: 60, limit: 10 },
   participantAuthCode: { ttlSeconds: 600, limit: 50 },
-  signin: { ttlSeconds: 600, limit: 10 },
+  signin: { ttlSeconds: 600, limit: 30 },
 };
 
 for (const profile of ['local', 'dev', 'prod']) {
@@ -733,7 +733,7 @@ for (const profile of ['local', 'dev', 'prod']) {
       const { config, hits, call } = await bootStack(t, profile);
       assert.deepEqual(config.rateLimit, RATE_LIMIT);
 
-      // POST /auth/signin only (#83): 10 per IP per 600s, then 429 without reaching User.
+      // POST /auth/signin only (#83, #164): 30 per IP per 600s, then 429 without reaching User.
       const { limit } = RATE_LIMIT.signin;
       for (let i = 0; i < limit; i += 1) {
         const response = await call('POST', '/auth/signin', '203.0.113.90');

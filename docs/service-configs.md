@@ -240,11 +240,23 @@ spring:
   비교해 해당 경로가 401로 남는다. `rateLimit.participantAuthCode`(IP별 600초에 50건, #92)도 #35부터 읽는다. 이전
   Gateway는 이 키를 무시해 `POST /participant-auth/code`에 기본 제한만 걸리므로, 이 설정은 Gateway #35가
   운영(main)에 배포된 뒤에 main으로 내보낸다.
-  `rateLimit.signin`(IP별 600초에 10건, `POST /auth/signin`, #83)은 Gateway main(`c368878`)이 읽어 `signin`
-  throttler로 건다. `verify-gateway.mjs`가 11번째 로그인(후행 슬래시·`%73ignin` 포함) 429와 다른 IP 통과를 점검한다.
+  `rateLimit.signin`(IP별 600초에 30건, `POST /auth/signin`, #83, #164에서 10건→30건)은 Gateway main(`c368878`)이 읽어 `signin`
+  throttler로 건다. `verify-gateway.mjs`가 31번째 로그인(후행 슬래시·`%73ignin` 포함) 429와 다른 IP 통과를 점검한다.
   계정 단위 실패 잠금은 User 서버(`SignInAttemptLimiter`)가 맡는다. 한도는 IP 기준이며, 운영에서는 Client가
   `TRUSTED_PROXY_HOPS`로 사용자 IP를 넘겨도 모든 관리자 로그인이 Next 서버 IP 하나로 이 한도를 함께 쓴다(아래
-  "Gateway가 보는 클라이언트 IP").
+  "Gateway가 보는 클라이언트 IP"). Config 릴리스 후 Gateway 재시작이 필요하다(Gateway는 부팅할 때만 설정을 읽는다).
+- 출력대 운영(#164, 통합 Expo-User-Server#236): 같은 관리자가 여러 기기(예: 11세션)로 로그인·refresh하므로 두 값을 함께 올린다.
+  | 값 | 적용 서비스·위치 | 반영 방법 |
+  |---|---|---|
+  | `rateLimit.signin` 600초에 30건 | Gateway, `gateway-{local,dev,prod}.yml` | Config 릴리스(재배포) → Gateway 재시작 |
+  | `JWT_MAX_REFRESH_TOKENS=20` (User `jwt.max-refresh-tokens`, 기본 10) | User 서버 프로세스 환경변수(각 환경 `.env`/배포 설정) | 환경변수 변경 → User 재시작 |
+
+  User 서버는 config 서버를 읽지 않으므로(위 "현재 실제로 config 서버를 읽는 서비스") `auth-*.yml`의
+  `jwt.max-refresh-tokens: 20`은 나중에 User를 붙일 때를 위한 값일 뿐 지금은 반영되지 않는다. 운영 적용은 User 환경변수로
+  따로 해야 한다. 비밀이 아니므로 Vault `secret/auth`에는 넣지 않는다.
+  계정별 실패 잠금은 그대로이고 공개 경로는 바꾸지 않는다. `/admin`은 계속 `expo-user-server`로 라우팅되고 JWT 검사를 거친다
+  (`/admin/badge-prints/{expoId}`는 `publicPaths`에 없다).
+  같은 관리자 11세션 login/refresh와 공용 IP 로그인 부하는 통합 환경에서 따로 확인해야 하며 이 변경에서는 실행하지 않았다.
   같은 문법을 쓰는 `GET /image/{id}`(#64)와 `GET /training/program/{expoId}`(#69)도 같은 조건이다. 연수 프로그램
   목록은 Expo-Client 참가자 연수 사전신청 제출이 토큰 없이 읽는다. #99는 세 프로필에
   `GET /standard/program/{expoId}`도 추가한다. Client develop `30336fc8` 및 main의 `ProgramApplyContainer`,

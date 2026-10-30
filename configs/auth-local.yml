@@ -1,1 +1,6 @@
 serviceName: auth
+
+# 한 관리자가 동시에 가질 수 있는 refresh token(로그인 기기) 수. 출력대 운영(#164)에서 같은 관리자가 여러 기기로 로그인한다.
+# User 서버는 아직 config 서버를 읽지 않아 이 값은 반영되지 않는다. 지금은 User 환경변수 JWT_MAX_REFRESH_TOKENS=20으로 준다(docs/service-configs.md).
+jwt:
+  max-refresh-tokens: 20
