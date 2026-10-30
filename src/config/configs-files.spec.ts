@@ -56,7 +56,7 @@ describe('configs/ files', () => {
         survey: { ttlSeconds: 60, limit: 300 },
         sms: { ttlSeconds: 60, limit: 10 },
         participantAuthCode: { ttlSeconds: 600, limit: 50 },
-        signin: { ttlSeconds: 600, limit: 10 },
+        signin: { ttlSeconds: 600, limit: 30 },
       });
     },
   );
